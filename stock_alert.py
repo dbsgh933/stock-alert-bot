@@ -37,6 +37,46 @@ ACCESS_TOKEN = get_access_token()
 if not ACCESS_TOKEN:
     raise RuntimeError("Failed to refresh Kakao access token. Check KAKAO_REST_API_KEY / KAKAO_REFRESH_TOKEN.")
 
+# 🔹 티커 → 회사명 매핑
+TICKER_NAME_MAP = {
+
+    # 🇺🇸 미국
+    "NVDA": "엔비디아",
+    "CRWV": "코어위브",
+    "CAT": "캐터필러",
+    "GOOG": "알파벳",
+    "LLY": "일라이릴리",
+    "WDC": "웨스턴디지털",
+    "TER": "테라다인",
+    "ICOP": "아이셰어즈 코퍼 ETF",
+    "SNDK": "샌디스크",
+    "MU": "마이크론",
+    "IAU": "아이셰어즈 골드 ETF",
+    "SLV": "아이셰어즈 실버 ETF",
+    "COHR": "코히런트",
+    "CMI": "커민스",
+    "LRCX": "램리서치",
+    "TSM": "TSMC",
+    "RKLB": "로켓랩",
+
+    # 🇰🇷 한국
+    "004020.KS": "현대제철",
+    "000120.KS": "CJ대한통운",
+    "241180.KS": "TIGER 일본니케이225",
+    "006800.KS": "미래에셋증권",
+    "042660.KS": "한화오션",
+    "352820.KS": "하이브",
+    "005380.KS": "현대차",
+    "009150.KS": "삼성전기",
+    "005930.KS": "삼성전자",
+    "000660.KS": "SK하이닉스",
+    "034020.KS": "두산에너빌리티",
+    "032830.KS": "삼성생명",
+    "316140.KS": "우리금융지주",
+    "086790.KS": "하나금융지주",
+}
+
+
 # ✅ 종목 리스트
 TICKERS_US = ["NVDA", "CRWV", "CAT", "GOOG", "LLY", "WDC", "TER", "ICOP", "SNDK", "MU", "IAU", "SLV", "COHR", "CMI", "LRCX", "TSM", "RKLB" ]
 TICKERS_KR = [
@@ -100,17 +140,36 @@ def fmt_pct(x):
 
 
 def format_block(ticker, close, ma20, ma60, chg1d, chg5d):
+    name = TICKER_NAME_MAP.get(ticker, ticker)
+    display_name = f"{name} ({ticker})"
+
     a20 = arrow(close >= ma20)
     a60 = arrow(close >= ma60)
 
-    # 보기 편하게 “종목 하나 = 한 블록”
     return (
-        f"{ticker}\n"
+        f"{display_name}\n"
+        f"종가: {format_price(ticker, close)}\n"
+        f"전일: {fmt_pct(chg1d)} | 주간(5D): {fmt_pct(chg5d)}\n"
+        f"20일이평선: {format_price(ticker, ma20)} {a20}\n"
+        f"60일이평선: {format_price(ticker, ma60)} {a60}\n"
+    )
+
+    return (
+        f"{display_name}\n"
         f"종가: {close:.2f}\n"
         f"전일: {fmt_pct(chg1d)} | 주간(5D): {fmt_pct(chg5d)}\n"
         f"20일이평선: {ma20:.2f} {a20}\n"
         f"60일이평선: {ma60:.2f} {a60}\n"
     )
+
+def format_price(ticker, price):
+    # 한국 주식
+    if ticker.endswith(".KS") or ticker.endswith(".KQ"):
+        return f"{price:,.0f}원"
+    # 미국 주식
+    else:
+        return f"${price:,.2f}"
+
 
 
 def split_messages(lines, limit=900):
