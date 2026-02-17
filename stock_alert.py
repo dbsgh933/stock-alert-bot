@@ -17,13 +17,15 @@ def get_access_token():
     }
     r = requests.post(url, data=data, timeout=15)
     result = r.json()
-
+    print("REFRESH RESULT:", result)
     if r.status_code != 200:
         raise RuntimeError(f"Failed to refresh token: {r.status_code} {result}")
 
     access_token = result.get("access_token")
     if not access_token:
         raise RuntimeError(f"No access_token in response: {result}")
+    print("refresh status:", r.status_code)
+    print("refresh response keys:", list(result.keys()))
 
     return access_token
 
@@ -126,6 +128,8 @@ def send_to_kakao(text: str):
 
     r = requests.post(url, headers=headers, data=data)
     print(r.status_code, r.text)
+print("REST_API_KEY set:", bool(os.getenv("KAKAO_REST_API_KEY")))
+print("REFRESH_TOKEN set:", bool(os.getenv("KAKAO_REFRESH_TOKEN")))
 
 
 def main():
