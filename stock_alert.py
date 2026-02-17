@@ -38,7 +38,7 @@ if not ACCESS_TOKEN:
     raise RuntimeError("Failed to refresh Kakao access token. Check KAKAO_REST_API_KEY / KAKAO_REFRESH_TOKEN.")
 
 # ✅ 종목 리스트
-tickers = ["NVDA", "AAPL", "TSLA"]
+tickers = ["NVDA", "TSLA", "CRWV", "CAT", "GOOG", "LLY", "WDC", "TER", "ICOP", "SNDK", "MU", "IAU", "SLV", "COHR", "CMI", "LRCX", "TSM", "RKLB" ]
 
 def fetch_stats(ticker, period="1y"):
     df = yf.download(ticker, period=period, auto_adjust=False, progress=False)
