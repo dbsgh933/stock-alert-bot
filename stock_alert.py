@@ -136,24 +136,53 @@ print("REFRESH_TOKEN set:", bool(os.getenv("KAKAO_REFRESH_TOKEN")))
 
 
 def main():
-    kst = pytz.timezone("Asia/Seoul")
-    today = datetime.now(kst).strftime("%m/%d %H:%M")
+    today = datetime.now().strftime("%m/%d %H:%M")
     header = f"📈 20/60 + 변동률 (전일/5D)  |  {today}"
-    lines = [header, ""]  # 헤더 다음 한 줄 띄움
+    lines = [header, ""]
+
+    results = []
+    missing = []
 
     for t in tickers:
         res = fetch_stats(t)
         if res is None:
-            lines.append(f"{t}\n데이터 없음/기간 부족\n")
+            missing.append(t)
             continue
 
         close, ma20, ma60, chg1d, chg5d = res
-        lines.append(format_block(t, close, ma20, ma60, chg1d, chg5d))
+        above60 = close >= ma60
+        above20 = close >= ma20
+
+        # (정렬용 키 + 출력용 데이터) 저장
+        results.append({
+            "ticker": t,
+            "close": close,
+            "ma20": ma20,
+            "ma60": ma60,
+            "chg1d": chg1d,
+            "chg5d": chg5d,
+            "above60": above60,
+            "above20": above20,
+        })
+
+    # ✅ (60일선 위) → (20일선 위) → (5일 변동률) 순 정렬
+    results.sort(key=lambda x: (x["above60"], x["above20"], x["chg5d"]), reverse=True)
+
+    # 출력
+    for r in results:
+        lines.append(format_block(
+            r["ticker"], r["close"], r["ma20"], r["ma60"], r["chg1d"], r["chg5d"]
+        ))
+
+    # 데이터 부족한 종목은 맨 아래에 몰아서 표시
+    if missing:
+        lines.append("⚠️ 데이터 없음/기간 부족")
+        for t in missing:
+            lines.append(f"- {t}")
 
     # 너무 길면 자동 분할 전송
     msgs = split_messages(lines, limit=900)
 
-    # 콘솔 출력 + 카톡 전송
     for i, m in enumerate(msgs, start=1):
         if len(msgs) > 1:
             m = f"{m}\n\n({i}/{len(msgs)})"
