@@ -58,6 +58,7 @@ TICKER_NAME_MAP = {
     "LRCX": "램리서치",
     "TSM": "TSMC",
     "RKLB": "로켓랩",
+    "BITX": "비트코인 전략 2배 ETF",
 
     # 🇰🇷 한국
     "004020.KS": "현대제철",
@@ -78,7 +79,7 @@ TICKER_NAME_MAP = {
 
 
 # ✅ 종목 리스트
-TICKERS_US = ["NVDA", "CRWV", "CAT", "GOOG", "LLY", "WDC", "TER", "ICOP", "SNDK", "MU", "IAU", "SLV", "COHR", "CMI", "LRCX", "TSM", "RKLB" ]
+TICKERS_US = ["NVDA", "CRWV", "CAT", "GOOG", "LLY", "WDC", "TER", "ICOP", "SNDK", "MU", "IAU", "SLV", "COHR", "CMI", "LRCX", "TSM", "RKLB", "BITX" ]
 TICKERS_KR = [
     "004020.KS",  # 현대제철
     "000120.KS",  # CJ대한통운
