@@ -18,3 +18,4 @@ data = {
 r = requests.post(url, data=data, timeout=15)
 print(r.status_code)
 print(r.text)
+print("REST KEY:", REST_API_KEY)

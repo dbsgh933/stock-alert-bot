@@ -4,9 +4,12 @@ import requests
 import json
 import os
 from datetime import datetime
+import pytz
 
 REST_API_KEY = os.environ["KAKAO_REST_API_KEY"]
 REFRESH_TOKEN = os.environ["KAKAO_REFRESH_TOKEN"]
+print("REST len:", len(os.getenv("KAKAO_REST_API_KEY","")))
+print("REFRESH len:", len(os.getenv("KAKAO_REFRESH_TOKEN","")))
 
 def get_access_token():
     url = "https://kauth.kakao.com/oauth/token"
@@ -133,7 +136,8 @@ print("REFRESH_TOKEN set:", bool(os.getenv("KAKAO_REFRESH_TOKEN")))
 
 
 def main():
-    today = datetime.now().strftime("%m/%d %H:%M")
+    kst = pytz.timezone("Asia/Seoul")
+    today = datetime.now(kst).strftime("%m/%d %H:%M")
     header = f"📈 20/60 + 변동률 (전일/5D)  |  {today}"
     lines = [header, ""]  # 헤더 다음 한 줄 띄움
 
