@@ -5,7 +5,9 @@ import json
 from datetime import datetime
 
 # ✅ 여기에 access_token 넣기
-ACCESS_TOKEN = "YVccoWK1diEKSgpd5VMh_J4-zpgAwaGSAAAAAQoNIJsAAAGcZsOAQ_6hmr4nKm-b"
+ACCESS_TOKEN = os.getenv("KAKAO_ACCESS_TOKEN", "")
+if not ACCESS_TOKEN:
+    raise RuntimeError("KAKAO_ACCESS_TOKEN is missing (set GitHub Actions secret).")
 
 # ✅ 종목 리스트
 tickers = ["NVDA", "AAPL", "TSLA"]
@@ -111,7 +113,7 @@ def main():
     for t in tickers:
         res = fetch_stats(t)
         if res is None:
-            lines.append(f"\n데이터 없음/기간 부족\n")
+            lines.append(f"{t}\n데이터 없음/기간 부족\n")
             continue
 
         close, ma20, ma60, chg1d, chg5d = res
