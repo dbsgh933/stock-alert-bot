@@ -5,10 +5,32 @@ import json
 import os
 from datetime import datetime
 
-# ✅ 여기에 access_token 넣기
-ACCESS_TOKEN = os.getenv("KAKAO_ACCESS_TOKEN", "")
+REST_API_KEY = os.environ["KAKAO_REST_API_KEY"]
+REFRESH_TOKEN = os.environ["KAKAO_REFRESH_TOKEN"]
+
+def get_access_token():
+    url = "https://kauth.kakao.com/oauth/token"
+    data = {
+        "grant_type": "refresh_token",
+        "client_id": REST_API_KEY,
+        "refresh_token": REFRESH_TOKEN,
+    }
+    r = requests.post(url, data=data, timeout=15)
+    result = r.json()
+
+    if r.status_code != 200:
+        raise RuntimeError(f"Failed to refresh token: {r.status_code} {result}")
+
+    access_token = result.get("access_token")
+    if not access_token:
+        raise RuntimeError(f"No access_token in response: {result}")
+
+    return access_token
+
+ACCESS_TOKEN = get_access_token()
+
 if not ACCESS_TOKEN:
-    raise RuntimeError("KAKAO_ACCESS_TOKEN is missing (set GitHub Actions secret).")
+    raise RuntimeError("Failed to refresh Kakao access token. Check KAKAO_REST_API_KEY / KAKAO_REFRESH_TOKEN.")
 
 # ✅ 종목 리스트
 tickers = ["NVDA", "AAPL", "TSLA"]
