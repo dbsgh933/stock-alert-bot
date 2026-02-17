@@ -2,6 +2,7 @@ import yfinance as yf
 import pandas as pd
 import requests
 import json
+import os
 from datetime import datetime
 
 # ✅ 여기에 access_token 넣기
