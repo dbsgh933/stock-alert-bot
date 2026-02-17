@@ -38,7 +38,23 @@ if not ACCESS_TOKEN:
     raise RuntimeError("Failed to refresh Kakao access token. Check KAKAO_REST_API_KEY / KAKAO_REFRESH_TOKEN.")
 
 # ✅ 종목 리스트
-tickers = ["NVDA", "TSLA", "CRWV", "CAT", "GOOG", "LLY", "WDC", "TER", "ICOP", "SNDK", "MU", "IAU", "SLV", "COHR", "CMI", "LRCX", "TSM", "RKLB" ]
+TICKERS_US = ["NVDA", "CRWV", "CAT", "GOOG", "LLY", "WDC", "TER", "ICOP", "SNDK", "MU", "IAU", "SLV", "COHR", "CMI", "LRCX", "TSM", "RKLB" ]
+TICKERS_KR = [
+    "004020.KS",  # 현대제철
+    "000120.KS",  # CJ대한통운
+    "241180.KS",  # TIGER 일본니케이225
+    "006800.KS",  # 미래에셋증권
+    "042660.KS",  # 한화오션
+    "352820.KS",  # 하이브
+    "005380.KS",  # 현대차
+    "009150.KS",  # 삼성전기
+    "005930.KS",  # 삼성전자
+    "000660.KS",  # SK하이닉스
+    "034020.KS",  # 두산에너빌리티
+    "032830.KS",  # 삼성생명
+    "316140.KS",  # 우리금융지주
+    "086790.KS",  # 하나금융지주
+]
 
 def fetch_stats(ticker, period="1y"):
     df = yf.download(ticker, period=period, auto_adjust=False, progress=False)
@@ -135,11 +151,8 @@ print("REST_API_KEY set:", bool(os.getenv("KAKAO_REST_API_KEY")))
 print("REFRESH_TOKEN set:", bool(os.getenv("KAKAO_REFRESH_TOKEN")))
 
 
-def main():
-    today = datetime.now().strftime("%m/%d %H:%M")
-    header = f"📈 20/60 + 변동률 (전일/5D)  |  {today}"
-    lines = [header, ""]
-
+def build_section_lines(title: str, tickers: list[str]):
+    lines = [title]
     results = []
     missing = []
 
@@ -153,7 +166,6 @@ def main():
         above60 = close >= ma60
         above20 = close >= ma20
 
-        # (정렬용 키 + 출력용 데이터) 저장
         results.append({
             "ticker": t,
             "close": close,
@@ -165,7 +177,7 @@ def main():
             "above20": above20,
         })
 
-    # ✅ (60일선 위) → (20일선 위) → (5일 변동률) 순 정렬
+    # ✅ (60일선 위) → (20일선 위) → (5일 변동률) 정렬
     results.sort(key=lambda x: (x["above60"], x["above20"], x["chg5d"]), reverse=True)
 
     # 출력
@@ -174,11 +186,29 @@ def main():
             r["ticker"], r["close"], r["ma20"], r["ma60"], r["chg1d"], r["chg5d"]
         ))
 
-    # 데이터 부족한 종목은 맨 아래에 몰아서 표시
     if missing:
         lines.append("⚠️ 데이터 없음/기간 부족")
         for t in missing:
             lines.append(f"- {t}")
+
+    lines.append("")  # 섹션 끝 빈 줄
+    return lines
+
+
+def main():
+    # (선택) 한국시간 표기: GitHub Actions는 UTC라 +9 적용
+    from datetime import datetime, timedelta
+    now_kst = datetime.utcnow() + timedelta(hours=9)
+    today = now_kst.strftime("%m/%d %H:%M")
+
+    header = f"📈 20/60 + 변동률 (전일/5D)  |  {today}"
+    lines = [header, ""]
+
+    # 🇰🇷 한국 섹션
+    lines += build_section_lines("🇰🇷 KOREA", TICKERS_KR)
+
+    # 🇺🇸 미국 섹션
+    lines += build_section_lines("🇺🇸 USA", TICKERS_US)
 
     # 너무 길면 자동 분할 전송
     msgs = split_messages(lines, limit=900)
