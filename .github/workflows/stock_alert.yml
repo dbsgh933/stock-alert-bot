@@ -1,21 +1,20 @@
 name: Stock Alert Bot
 
-
 on:
+  push:
+    paths:
+      - ".github/workflows/stock_alert.yml"
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "* * * * *"
   workflow_dispatch:
 
 concurrency:
   group: stock-alert
   cancel-in-progress: true
 
-# force-refresh: 1
-
 jobs:
   run:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
