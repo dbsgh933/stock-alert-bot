@@ -194,42 +194,28 @@ def split_messages(lines, limit=900):
 
 
 def send_to_kakao(text: str):
-    import json
-    import requests
-    from datetime import datetime
-
     url = "https://kapi.kakao.com/v2/api/talk/memo/default/send"
     headers = {"Authorization": f"Bearer {ACCESS_TOKEN}"}
 
-    now = datetime.now().strftime("%Y-%m-%d %H:%M")
+    pretty = (
+        "📈 Stock Alert Bot\n"
+        "--------------------\n"
+        f"{text}"
+    )
 
-    template_object = {
-        "object_type": "feed",
-        "content": {
-            "title": "📈 Stock Alert Bot",
-            "description": f"{now}\n\n{text}",
-            "image_url": "https://upload.wikimedia.org/wikipedia/commons/3/3a/Logo_KakaoTalk.png",
+    data = {
+        "template_object": json.dumps({
+            "object_type": "text",
+            "text": pretty[:1000],  # 길이 안전장치
             "link": {
                 "web_url": "https://www.tradingview.com",
                 "mobile_web_url": "https://www.tradingview.com"
             }
-        },
-        "buttons": [
-            {
-                "title": "📊 TradingView 열기",
-                "link": {
-                    "web_url": "https://www.tradingview.com",
-                    "mobile_web_url": "https://www.tradingview.com"
-                }
-            }
-        ]
+        }, ensure_ascii=False)
     }
-
-    data = {"template_object": json.dumps(template_object, ensure_ascii=False)}
 
     r = requests.post(url, headers=headers, data=data, timeout=15)
     print(r.status_code, r.text)
-
 
 
 def build_section_lines(title: str, tickers: list[str]):
