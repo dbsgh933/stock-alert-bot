@@ -1,15 +1,6 @@
 name: Stock Alert Bot
 
-on:
-  schedule:
-    - cron: "*/5 * * * *"
-  workflow_dispatch:
 
-concurrency:
-  group: stock-alert
-  cancel-in-progress: true
-
-# force-refresh: 1
 
 
 jobs:
