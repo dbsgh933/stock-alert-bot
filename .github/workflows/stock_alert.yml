@@ -1,8 +1,10 @@
 name: Stock Alert Bot
 
 on:
-
+  schedule:
+    - cron: "* * * * *"
   workflow_dispatch:
+
 
 concurrency:
   group: stock-alert
