@@ -3,7 +3,7 @@ name: Stock Alert Bot
 on:
   schedule:
     - cron: "0 7 * * *"     # 한국장 16:00
-    - cron: "30 21 * * *"   # 미국장 06:30
+    - cron: "0 21 * * *"   # 미국장 06:00
   workflow_dispatch:
 
 
