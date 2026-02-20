@@ -170,6 +170,9 @@ def format_block(ticker, close, ma20, ma60, chg1d, chg5d, chg20d, chg60d):
         f"20일이평선: {ma20:.2f} {a20}\n"
         f"60일이평선: {ma60:.2f} {a60}\n"
     )
+    
+def arrow(up: bool):
+    return "🟢↑" if up else "🔴↓"
 
 def format_price(ticker, price):
     # 한국 주식
@@ -288,7 +291,7 @@ def main():
     now_kst = datetime.utcnow() + timedelta(hours=9)
     today = now_kst.strftime("%m/%d %H:%M")
 
-    header = f"📈 20/60 + 변동률 (전일/5D)  |  {today}"
+    header = f"📈 20/60MA + 변동률(1D/5D/20D/60D) | {today}"
     lines = [header, ""]
 
     # 🇰🇷 한국 섹션
