@@ -156,17 +156,17 @@ def fmt_pct(x: float) -> str:
     # "🟢+1.23%"
     return f"{pct_color(x)}{x:+.2f}%"
 
-def ma_pos_icon(close: float, ma: float) -> str:
-    return "🟢" if close >= ma else "🔴"
+def ma_pos_arrow(close: float, ma: float) -> str:
+    # 종가가 이평선 위면 ▲, 아래면 ▼
+    return "▲" if close >= ma else "▼"
 
 def vol_badge(vol_ratio: float) -> str:
-    # 2.0x 이상 🔥, 1.5x 이상 🟢, 0.7x 이하 🔴
     if vol_ratio >= 2.0:
         return "🔥"
     if vol_ratio >= 1.5:
-        return "🟢"
+        return "⚡"   # ✅ 1.5x 구간 아이콘 변경
     if vol_ratio <= 0.7:
-        return "🔴"
+        return "💧"
     return ""
 
 def format_block(ticker, close, ma20, ma60,
@@ -181,8 +181,8 @@ def format_block(ticker, close, ma20, ma60,
         f"종가: {price_str}\n"
         f"전일: {fmt_pct(chg1d)} | 주간(5D): {fmt_pct(chg5d)}\n"
         f"20D: {fmt_pct(chg20d)} | 60D: {fmt_pct(chg60d)}\n"
-        f"20일이평선: {format_price(ticker, ma20)} {ma_pos_icon(close, ma20)}\n"
-        f"60일이평선: {format_price(ticker, ma60)} {ma_pos_icon(close, ma60)}\n"
+        f"20일이평선: {format_price(ticker, ma20)} {ma_pos_arrow(close, ma20)}\n"
+        f"60일이평선: {format_price(ticker, ma60)} {ma_pos_arrow(close, ma60)}\n"
         f"거래량(20D평균대비): {vol_ratio:.2f}x {vol_badge(vol_ratio)}\n"
     )
     
