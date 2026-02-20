@@ -144,45 +144,40 @@ def fetch_stats(ticker, period="1y"):
 
     return close0, ma20v, ma60v, chg1d, chg5d, chg20d, chg60d, vol_ratio
 
-def pct_color(x: float) -> str:
-    # 상승=🟢, 하락=🔴
+def fmt_pct_dot(x: float) -> str:
+    # 변화량: 🟢+1.23% / 🔴-0.45%
     if x > 0:
-        return "🟢"
-    if x < 0:
-        return "🔴"
-    return "⚪"
+        return f"🟢{x:+.2f}%"
+    elif x < 0:
+        return f"🔴{x:+.2f}%"
+    else:
+        return f"{x:+.2f}%"
 
-def fmt_pct(x: float) -> str:
-    # "🟢+1.23%"
-    return f"{pct_color(x)}{x:+.2f}%"
-
-def ma_pos_arrow(close: float, ma: float) -> str:
-    # 종가가 이평선 위면 ▲, 아래면 ▼
-    return "▲" if close >= ma else "▼"
+def ma_flag(close: float, ma: float) -> str:
+    # 이평선 위/아래: 🟢▲ / 🔴▼
+    return "🟢▲" if close >= ma else "🔴▼"
 
 def vol_badge(vol_ratio: float) -> str:
+    # VOL 배지: 2.0x↑ 🔥, 1.5x↑ ⚡, 0.7x↓ 💧
     if vol_ratio >= 2.0:
         return "🔥"
     if vol_ratio >= 1.5:
-        return "⚡"   # ✅ 1.5x 구간 아이콘 변경
+        return "⚡"
     if vol_ratio <= 0.7:
         return "💧"
     return ""
 
-def format_block(ticker, close, ma20, ma60,
-                 chg1d, chg5d, chg20d, chg60d, vol_ratio):
-
+def format_block(ticker, close, ma20, ma60, chg1d, chg5d, chg20d, chg60d, vol_ratio):
     name = TICKER_NAME_MAP.get(ticker, ticker)
     display_name = f"{name} ({ticker})"
-    price_str = format_price(ticker, close)
 
     return (
         f"{display_name}\n"
-        f"종가: {price_str}\n"
-        f"전일: {fmt_pct(chg1d)} | 주간(5D): {fmt_pct(chg5d)}\n"
-        f"20D: {fmt_pct(chg20d)} | 60D: {fmt_pct(chg60d)}\n"
-        f"20일이평선: {format_price(ticker, ma20)} {ma_pos_arrow(close, ma20)}\n"
-        f"60일이평선: {format_price(ticker, ma60)} {ma_pos_arrow(close, ma60)}\n"
+        f"종가: {format_price(ticker, close)}\n"
+        f"전일: {fmt_pct_dot(chg1d)} | 주간(5D): {fmt_pct_dot(chg5d)}\n"
+        f"20D: {fmt_pct_dot(chg20d)} | 60D: {fmt_pct_dot(chg60d)}\n"
+        f"20일이평선: {format_price(ticker, ma20)} {ma_flag(close, ma20)}\n"
+        f"60일이평선: {format_price(ticker, ma60)} {ma_flag(close, ma60)}\n"
         f"거래량(20D평균대비): {vol_ratio:.2f}x {vol_badge(vol_ratio)}\n"
     )
     
