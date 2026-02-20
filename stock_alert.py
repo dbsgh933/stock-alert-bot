@@ -172,8 +172,8 @@ def format_block(ticker, close, ma20, ma60, chg1d, chg5d, chg20d, chg60d):
     )
     
 def arrow(up: bool):
-    return "🟢↑" if up else "🔴↓"
-
+    return "🔴▲" if up else "🔵▼"
+    
 def format_price(ticker, price):
     # 한국 주식
     if ticker.endswith(".KS") or ticker.endswith(".KQ"):
