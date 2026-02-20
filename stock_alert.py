@@ -108,9 +108,11 @@ def fetch_stats(ticker, period="1y"):
         df.columns = [c[0] for c in df.columns]
 
     close = df["Close"].astype(float)
+    volume = df["Volume"].astype(float)
 
     ma20 = close.rolling(20).mean()
     ma60 = close.rolling(60).mean()
+    vol_ma20 = volume.rolling(20).mean()
 
     last_idx = ma60.last_valid_index()
     if last_idx is None:
@@ -129,40 +131,42 @@ def fetch_stats(ticker, period="1y"):
     ma20v = float(ma20.iloc[pos])
     ma60v = float(ma60.iloc[pos])
 
+    # 거래량 배수(오늘 거래량 / 20일 평균 거래량)
+    vol_today = float(volume.iloc[pos])
+    vol_avg20 = float(vol_ma20.iloc[pos])
+    vol_ratio = (vol_today / vol_avg20) if vol_avg20 and vol_avg20 > 0 else 0.0
+
     chg1d = (close0 / close1 - 1.0) * 100.0
     chg5d = (close0 / close5 - 1.0) * 100.0
     chg20d = (close0 / close20 - 1.0) * 100.0
     chg60d = (close0 / close60 - 1.0) * 100.0
 
-    return close0, ma20v, ma60v, chg1d, chg5d, chg20d, chg60d
+    return close0, ma20v, ma60v, chg1d, chg5d, chg20d, chg60d, vol_ratio
 
-def fmt_pct(x):
+def fmt_pct_tail(x):
     if x > 0:
-        return f"🟢{x:+.2f}%"
+        return f"{x:+.2f}% 🟢"
     elif x < 0:
-        return f"🔴{x:+.2f}%"
+        return f"{x:+.2f}% 🔴"
     else:
         return f"{x:+.2f}%"
 
 def format_block(ticker, close, ma20, ma60,
-                 chg1d, chg5d, chg20d, chg60d):
+                 chg1d, chg5d, chg20d, chg60d, vol_ratio):
 
     name = TICKER_NAME_MAP.get(ticker, ticker)
     display_name = f"{name} ({ticker})"
 
-    ma20_pos = arrow(close >= ma20)
-    ma60_pos = arrow(close >= ma60)
+    ma20_pos = "🟢" if close >= ma20 else "🔴"
+    ma60_pos = "🟢" if close >= ma60 else "🔴"
 
     return (
-        f"{display_name}\n"
-        f"종가: {format_price(ticker, close)}\n"
-        f"{fmt_pct(chg1d)} 1D | {fmt_pct(chg5d)} 5D\n"
-        f"{fmt_pct(chg20d)} 20D | {fmt_pct(chg60d)} 60D\n"
-        f"20MA {ma20_pos} | 60MA {ma60_pos}\n"
+        f"{display_name}  {format_price(ticker, close)}\n\n"
+        f"20D {fmt_pct_tail(chg20d)} | 60D {fmt_pct_tail(chg60d)}\n"
+        f"1D  {fmt_pct_tail(chg1d)} | 5D  {fmt_pct_tail(chg5d)}\n"
+        f"MA: 20 {ma20_pos}  60 {ma60_pos}\n"
+        f"VOL {vol_ratio:.2f}x\n"
     )
-    
-def arrow(up: bool):
-    return "🟢▲" if up else "🔴▼"
     
 def format_price(ticker, price):
     # 한국 주식
@@ -171,8 +175,6 @@ def format_price(ticker, price):
     # 미국 주식
     else:
         return f"${price:,.2f}"
-
-
 
 def split_messages(lines, limit=900):
     """
@@ -230,7 +232,7 @@ def build_section_lines(title: str, tickers: list[str]):
             missing.append(t)
             continue
 
-        close, ma20, ma60, chg1d, chg5d, chg20d, chg60d = res
+        close, ma20, ma60, chg1d, chg5d, chg20d, chg60d, vol_ratio = res
 
         above60 = close >= ma60
         above20 = close >= ma20
@@ -244,6 +246,7 @@ def build_section_lines(title: str, tickers: list[str]):
             "chg5d": chg5d,
             "chg20d": chg20d,
             "chg60d": chg60d,
+            "vol_ratio": vol_ratio, 
             "above60": above60,
             "above20": above20,
         })
@@ -264,6 +267,7 @@ def build_section_lines(title: str, tickers: list[str]):
             r["chg5d"],
             r["chg20d"],
             r["chg60d"],
+            r["vol_ratio"],
         ))
 
     if missing:
