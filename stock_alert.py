@@ -157,17 +157,16 @@ def fmt_pct(x: float) -> str:
     return f"{pct_color(x)}{x:+.2f}%"
 
 def ma_pos_icon(close: float, ma: float) -> str:
-    # 종가가 이평선 위면 🟢↑, 아래면 🔴↓ (스샷 느낌)
-    return "🟢↑" if close >= ma else "🔴↓"
+    return "🟢" if close >= ma else "🔴"
 
 def vol_badge(vol_ratio: float) -> str:
-    # 2.0x 이상 🔥, 1.5x 이상 🟢, 0.7x 이하 🔵
+    # 2.0x 이상 🔥, 1.5x 이상 🟢, 0.7x 이하 🔴
     if vol_ratio >= 2.0:
         return "🔥"
     if vol_ratio >= 1.5:
         return "🟢"
     if vol_ratio <= 0.7:
-        return "🔵"
+        return "🔴"
     return ""
 
 def format_block(ticker, close, ma20, ma60,
