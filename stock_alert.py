@@ -122,50 +122,69 @@ def fetch_stats(ticker, period="1y"):
     if pos < 60:
         return None
 
-    close0 = float(close.iloc[pos])
-    close1 = float(close.iloc[pos - 1])
-    close5 = float(close.iloc[pos - 5])
+    close0  = float(close.iloc[pos])
+    close1  = float(close.iloc[pos - 1])
+    close5  = float(close.iloc[pos - 5])
     close20 = float(close.iloc[pos - 20])
     close60 = float(close.iloc[pos - 60])
 
     ma20v = float(ma20.iloc[pos])
     ma60v = float(ma60.iloc[pos])
 
-    # 거래량 배수(오늘 거래량 / 20일 평균 거래량)
+    # 수익률
+    chg1d  = (close0 / close1  - 1.0) * 100.0
+    chg5d  = (close0 / close5  - 1.0) * 100.0
+    chg20d = (close0 / close20 - 1.0) * 100.0
+    chg60d = (close0 / close60 - 1.0) * 100.0
+
+    # 거래량 배수(오늘 / 20일 평균)
     vol_today = float(volume.iloc[pos])
     vol_avg20 = float(vol_ma20.iloc[pos])
     vol_ratio = (vol_today / vol_avg20) if vol_avg20 and vol_avg20 > 0 else 0.0
 
-    chg1d = (close0 / close1 - 1.0) * 100.0
-    chg5d = (close0 / close5 - 1.0) * 100.0
-    chg20d = (close0 / close20 - 1.0) * 100.0
-    chg60d = (close0 / close60 - 1.0) * 100.0
-
     return close0, ma20v, ma60v, chg1d, chg5d, chg20d, chg60d, vol_ratio
 
-def fmt_pct_tail(x):
+def pct_color(x: float) -> str:
+    # 상승=🟢, 하락=🔴
     if x > 0:
-        return f"{x:+.2f}% 🟢"
-    elif x < 0:
-        return f"{x:+.2f}% 🔴"
-    else:
-        return f"{x:+.2f}%"
+        return "🟢"
+    if x < 0:
+        return "🔴"
+    return "⚪"
+
+def fmt_pct(x: float) -> str:
+    # "🟢+1.23%"
+    return f"{pct_color(x)}{x:+.2f}%"
+
+def ma_pos_icon(close: float, ma: float) -> str:
+    # 종가가 이평선 위면 🟢↑, 아래면 🔴↓ (스샷 느낌)
+    return "🟢↑" if close >= ma else "🔴↓"
+
+def vol_badge(vol_ratio: float) -> str:
+    # 2.0x 이상 🔥, 1.5x 이상 🟢, 0.7x 이하 🔵
+    if vol_ratio >= 2.0:
+        return "🔥"
+    if vol_ratio >= 1.5:
+        return "🟢"
+    if vol_ratio <= 0.7:
+        return "🔵"
+    return ""
 
 def format_block(ticker, close, ma20, ma60,
                  chg1d, chg5d, chg20d, chg60d, vol_ratio):
 
     name = TICKER_NAME_MAP.get(ticker, ticker)
     display_name = f"{name} ({ticker})"
-
-    ma20_pos = "🟢" if close >= ma20 else "🔴"
-    ma60_pos = "🟢" if close >= ma60 else "🔴"
+    price_str = format_price(ticker, close)
 
     return (
-        f"{display_name}  {format_price(ticker, close)}\n\n"
-        f"20D {fmt_pct_tail(chg20d)} | 60D {fmt_pct_tail(chg60d)}\n"
-        f"1D  {fmt_pct_tail(chg1d)} | 5D  {fmt_pct_tail(chg5d)}\n"
-        f"MA: 20 {ma20_pos}  60 {ma60_pos}\n"
-        f"VOL {vol_ratio:.2f}x\n"
+        f"{display_name}\n"
+        f"종가: {price_str}\n"
+        f"전일: {fmt_pct(chg1d)} | 주간(5D): {fmt_pct(chg5d)}\n"
+        f"20D: {fmt_pct(chg20d)} | 60D: {fmt_pct(chg60d)}\n"
+        f"20일이평선: {format_price(ticker, ma20)} {ma_pos_icon(close, ma20)}\n"
+        f"60일이평선: {format_price(ticker, ma60)} {ma_pos_icon(close, ma60)}\n"
+        f"거래량(20D평균대비): {vol_ratio:.2f}x {vol_badge(vol_ratio)}\n"
     )
     
 def format_price(ticker, price):
