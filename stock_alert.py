@@ -246,16 +246,18 @@ def build_section_lines(title: str, tickers: list[str]):
         above60 = close >= ma60
         above20 = close >= ma20
 
-        results.append({
-            "ticker": t,
-            "close": close,
-            "ma20": ma20,
-            "ma60": ma60,
-            "chg1d": chg1d,
-            "chg5d": chg5d,
-            "above60": above60,
-            "above20": above20,
-        })
+       results.append({
+    		"ticker": t,
+    		"close": close,
+    		"ma20": ma20,
+    		"ma60": ma60,
+    		"chg1d": chg1d,
+    		"chg5d": chg5d,
+    		"chg20d": chg20d,
+    		"chg60d": chg60d,
+    		"above60": above60,
+    		"above20": above20,
+	})
 
     # ✅ (60일선 위) → (20일선 위) → (5일 변동률) 정렬
     results.sort(key=lambda x: (x["above60"], x["above20"], x["chg5d"]), reverse=True)
