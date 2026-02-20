@@ -76,6 +76,27 @@ TICKER_NAME_MAP = {
     "316140.KS": "우리금융지주",
     "086790.KS": "하나금융지주",
     "396500.KS": "TIGER 차이나반도체FACTSET",
+
+    # 관심종목 한국
+    "012450.KS": "한화에어로스페이스",
+    "010120.KS": "LS ELECTRIC",
+    "278470.KS": "에이피알",
+    "298040.KS": "효성중공업",
+    "267260.KS": "HD현대일렉트릭",
+    "000810.KS": "삼성화재",
+    "329180.KS": "HD현대중공업",
+
+    # 관심종목 미국
+    "GS": "골드만삭스",
+    "META": "메타",
+    "IONQ": "아이온큐",
+    "TSLA": "테슬라",
+    "PLTR": "팔란티어",
+    "AVGO": "브로드컴",
+    "TLN": "탈런에너지",
+    "ETN": "이튼",
+    "SPOT": "스포티파이",
+    "AAPL": "애플",
 }
 
 
@@ -97,6 +118,27 @@ TICKERS_KR = [
     "316140.KS",  # 우리금융지주
     "086790.KS",  # 하나금융지주
     "396500.KS",  # TIGER 차이나반도체FACTSET
+]
+WATCHLIST_KR = [
+    "012450.KS",  # 한화에어로스페이스
+    "010120.KS",  # LS ELECTRIC
+    "278470.KS",  # 에이피알
+    "298040.KS",  # 효성중공업
+    "267260.KS",  # HD현대일렉트릭
+    "000810.KS",  # 삼성화재
+    "329180.KS",  # HD현대중공업
+]
+WATCHLIST_US = [
+    "GS",    # 골드만삭스
+    "META",  # 메타
+    "IONQ",  # 아이온큐
+    "TSLA",  # 테슬라
+    "PLTR",  # 팔란티어
+    "AVGO",  # 브로드컴
+    "TLN",   # 탈런에너지
+    "ETN",   # 이튼
+    "SPOT",  # 스포티파이
+    "AAPL",  # 애플
 ]
 
 def fetch_stats(ticker, period="1y"):
@@ -301,11 +343,13 @@ def main():
     header = f"📈 20/60MA + 변동률(1D/5D/20D/60D) | {today}"
     lines = [header, ""]
 
-    # 🇰🇷 한국 섹션
-    lines += build_section_lines("🇰🇷 KOREA", TICKERS_KR)
-
-    # 🇺🇸 미국 섹션
-    lines += build_section_lines("🇺🇸 USA", TICKERS_US)
+    # 📦 보유종목
+    lines += build_section_lines("📦 PORTFOLIO - 🇰🇷 KOREA", TICKERS_KR)
+    lines += build_section_lines("📦 PORTFOLIO - 🇺🇸 USA", TICKERS_US)
+    
+    # 👀 관심종목
+    lines += build_section_lines("👀 WATCHLIST - 🇰🇷 KOREA", WATCHLIST_KR)
+    lines += build_section_lines("👀 WATCHLIST - 🇺🇸 USA", WATCHLIST_US)
 
     # 너무 길면 자동 분할 전송
     msgs = split_messages(lines, limit=900)
