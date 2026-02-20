@@ -306,9 +306,9 @@ def build_section_lines(title: str, tickers: list[str]):
             "above20": above20,
         })
 
-    # 60D → 20D → 5D 기준 정렬
+    # (20D → 5D → 1D)
     results.sort(
-        key=lambda x: (x["chg60d"], x["chg20d"], x["chg5d"]),
+        key=lambda x: (x["chg20d"], x["chg5d"], x["chg1d"]),
         reverse=True
     )
 
