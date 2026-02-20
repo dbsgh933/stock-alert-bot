@@ -144,11 +144,6 @@ def fmt_pct(x):
     else:
         return f"{x:+.2f}%"
 
-
-def fmt_pct(x):
-    return f"{x:+.2f}%"
-
-
 def format_block(ticker, close, ma20, ma60, chg1d, chg5d, chg20d, chg60d):
     name = TICKER_NAME_MAP.get(ticker, ticker)
     display_name = f"{name} ({ticker})"
