@@ -299,6 +299,14 @@ def build_section_lines(title: str, tickers: list[str]):
 
         close, ma20, ma60, chg1d, chg5d, chg20d, chg60d, vol_ratio, cross20_up = res
 
+        # ✅ 이벤트 감지 (⭐ / 🚀)
+        name = TICKER_NAME_MAP.get(t, t)
+        if cross20_up:
+            if vol_ratio >= 2.0:
+                event_list.append(f"🚀 {name} ({t})")
+            else:
+                event_list.append(f"⭐ {name} ({t})")
+
         above60 = close >= ma60
         above20 = close >= ma20
 
@@ -340,38 +348,39 @@ def build_section_lines(title: str, tickers: list[str]):
 
 
 def main():
-    # (선택) 한국시간 표기: GitHub Actions는 UTC라 +9 적용
     from datetime import datetime, timedelta
     now_kst = datetime.utcnow() + timedelta(hours=9)
     today = now_kst.strftime("%m/%d %H:%M")
 
     header = f"📈 20/60MA + 변동률(1D/5D/20D/60D) | {today}"
-    if all_events:
-        lines.insert(1, "⭐ 오늘 20MA 상향돌파")
-        for e in reversed(all_events):
-            lines.insert(2, e)
-        lines.insert(2 + len(all_events), "")
-    else:
-        lines.insert(1, "⭐ 오늘 20MA 상향돌파: 없음\n")
-    
-    all_events = []
     lines = [header, ""]
+    all_events = []
 
+    # 섹션들 생성 + 이벤트 모으기
     section_lines, events = build_section_lines("📦 PORTFOLIO - 🇰🇷 KOREA", TICKERS_KR)
     lines += section_lines
     all_events += events
-    
+
     section_lines, events = build_section_lines("📦 PORTFOLIO - 🇺🇸 USA", TICKERS_US)
     lines += section_lines
     all_events += events
-    
+
     section_lines, events = build_section_lines("👀 WATCHLIST - 🇰🇷 KOREA", WATCHLIST_KR)
     lines += section_lines
     all_events += events
-    
+
     section_lines, events = build_section_lines("👀 WATCHLIST - 🇺🇸 USA", WATCHLIST_US)
     lines += section_lines
     all_events += events
+
+    # ✅ 이벤트 요약을 "맨 위"에 삽입 (header 다음 줄)
+    if all_events:
+        summary = ["⭐ 오늘 20MA 상향돌파"] + all_events + [""]
+    else:
+        summary = ["⭐ 오늘 20MA 상향돌파: 없음", ""]
+
+    # header 바로 아래에 끼워넣기
+    lines = [lines[0], ""] + summary + lines[2:]
 
     # 너무 길면 자동 분할 전송
     msgs = split_messages(lines, limit=900)
