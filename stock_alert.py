@@ -144,31 +144,21 @@ def fmt_pct(x):
     else:
         return f"{x:+.2f}%"
 
-def format_block(ticker, close, ma20, ma60, chg1d, chg5d, chg20d, chg60d):
+def format_block(ticker, close, ma20, ma60,
+                 chg1d, chg5d, chg20d, chg60d):
+
     name = TICKER_NAME_MAP.get(ticker, ticker)
     display_name = f"{name} ({ticker})"
 
-    a20 = arrow(close >= ma20)
-    a60 = arrow(close >= ma60)
+    ma20_pos = arrow(close >= ma20)
+    ma60_pos = arrow(close >= ma60)
 
     return (
         f"{display_name}\n"
-        f"종가: {format_price(ticker, close)}\n\n"
-        f"📊 추세\n"
-        f"20D: {fmt_pct(chg20d)}\n"
-        f"60D: {fmt_pct(chg60d)}\n\n"
-        f"⚡ 단기\n"
-        f"1D: {fmt_pct(chg1d)} | 5D: {fmt_pct(chg5d)}\n"
-        f"20MA: {format_price(ticker, ma20)} {a20}\n"
-        f"60MA: {format_price(ticker, ma60)} {a60}\n"
-    )
-
-    return (
-        f"{display_name}\n"
-        f"종가: {close:.2f}\n"
-        f"전일: {fmt_pct(chg1d)} | 주간(5D): {fmt_pct(chg5d)}\n"
-        f"20일이평선: {ma20:.2f} {a20}\n"
-        f"60일이평선: {ma60:.2f} {a60}\n"
+        f"종가: {format_price(ticker, close)}\n"
+        f"{fmt_pct(chg1d)} 1D | {fmt_pct(chg5d)} 5D\n"
+        f"{fmt_pct(chg20d)} 20D | {fmt_pct(chg60d)} 60D\n"
+        f"20MA {ma20_pos} | 60MA {ma60_pos}\n"
     )
     
 def arrow(up: bool):
