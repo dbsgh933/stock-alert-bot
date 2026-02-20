@@ -289,6 +289,7 @@ def build_section_lines(title: str, tickers: list[str]):
     lines = [title]
     results = []
     missing = []
+    event_list = []
 
     for t in tickers:
         res = fetch_stats(t)
@@ -335,7 +336,7 @@ def build_section_lines(title: str, tickers: list[str]):
             lines.append(f"- {t}")
 
     lines.append("")
-    return lines
+    return lines, event_list
 
 
 def main():
@@ -345,15 +346,32 @@ def main():
     today = now_kst.strftime("%m/%d %H:%M")
 
     header = f"📈 20/60MA + 변동률(1D/5D/20D/60D) | {today}"
+    if all_events:
+        lines.insert(1, "⭐ 오늘 20MA 상향돌파")
+        for e in reversed(all_events):
+            lines.insert(2, e)
+        lines.insert(2 + len(all_events), "")
+    else:
+        lines.insert(1, "⭐ 오늘 20MA 상향돌파: 없음\n")
+    
+    all_events = []
     lines = [header, ""]
 
-    # 📦 보유종목
-    lines += build_section_lines("📦 PORTFOLIO - 🇰🇷 KOREA", TICKERS_KR)
-    lines += build_section_lines("📦 PORTFOLIO - 🇺🇸 USA", TICKERS_US)
+    section_lines, events = build_section_lines("📦 PORTFOLIO - 🇰🇷 KOREA", TICKERS_KR)
+    lines += section_lines
+    all_events += events
     
-    # 👀 관심종목
-    lines += build_section_lines("👀 WATCHLIST - 🇰🇷 KOREA", WATCHLIST_KR)
-    lines += build_section_lines("👀 WATCHLIST - 🇺🇸 USA", WATCHLIST_US)
+    section_lines, events = build_section_lines("📦 PORTFOLIO - 🇺🇸 USA", TICKERS_US)
+    lines += section_lines
+    all_events += events
+    
+    section_lines, events = build_section_lines("👀 WATCHLIST - 🇰🇷 KOREA", WATCHLIST_KR)
+    lines += section_lines
+    all_events += events
+    
+    section_lines, events = build_section_lines("👀 WATCHLIST - 🇺🇸 USA", WATCHLIST_US)
+    lines += section_lines
+    all_events += events
 
     # 너무 길면 자동 분할 전송
     msgs = split_messages(lines, limit=900)
