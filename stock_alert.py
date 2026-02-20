@@ -138,9 +138,9 @@ def fetch_stats(ticker, period="1y"):
 
 def fmt_pct(x):
     if x > 0:
-        return f"🔴{x:+.2f}%"
+        return f"🟢{x:+.2f}%"
     elif x < 0:
-        return f"🔵{x:+.2f}%"
+        return f"🔴{x:+.2f}%"
     else:
         return f"{x:+.2f}%"
 
@@ -172,7 +172,7 @@ def format_block(ticker, close, ma20, ma60, chg1d, chg5d, chg20d, chg60d):
     )
     
 def arrow(up: bool):
-    return "🔴▲" if up else "🔵▼"
+    return "🟢▲" if up else "🔴▼"
     
 def format_price(ticker, price):
     # 한국 주식
