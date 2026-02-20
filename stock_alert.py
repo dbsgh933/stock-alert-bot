@@ -171,7 +171,15 @@ def fetch_stats(ticker, period="1y"):
     close60 = float(close.iloc[pos - 60])
 
     ma20v = float(ma20.iloc[pos])
+    ma20_prev = float(ma20.iloc[pos - 1])
+    
     ma60v = float(ma60.iloc[pos])
+
+    close0 = float(close.iloc[pos])
+    close_prev = float(close.iloc[pos - 1])
+    
+    # ✅ 20MA 아래→위 상향돌파
+    cross20_up = (close_prev < ma20_prev) and (close0 >= ma20v)
 
     # 수익률
     chg1d  = (close0 / close1  - 1.0) * 100.0
@@ -184,7 +192,7 @@ def fetch_stats(ticker, period="1y"):
     vol_avg20 = float(vol_ma20.iloc[pos])
     vol_ratio = (vol_today / vol_avg20) if vol_avg20 and vol_avg20 > 0 else 0.0
 
-    return close0, ma20v, ma60v, chg1d, chg5d, chg20d, chg60d, vol_ratio
+    return close0, ma20v, ma60v, chg1d, chg5d, chg20d, chg60d, vol_ratio, cross20_up
 
 def fmt_pct_dot(x: float) -> str:
     # 변화량: 🟢+1.23% / 🔴-0.45%
@@ -209,9 +217,10 @@ def vol_badge(vol_ratio: float) -> str:
         return "💧"
     return ""
 
-def format_block(ticker, close, ma20, ma60, chg1d, chg5d, chg20d, chg60d, vol_ratio):
+def format_block(ticker, close, ma20, ma60, chg1d, chg5d, chg20d, chg60d, vol_ratio, cross20_up):
     name = TICKER_NAME_MAP.get(ticker, ticker)
-    display_name = f"{name} ({ticker})"
+    star = "⭐ " if cross20_up else ""
+    display_name = f"{star}{name} ({ticker})"
 
     return (
         f"{display_name}\n"
@@ -287,7 +296,7 @@ def build_section_lines(title: str, tickers: list[str]):
             missing.append(t)
             continue
 
-        close, ma20, ma60, chg1d, chg5d, chg20d, chg60d, vol_ratio = res
+        close, ma20, ma60, chg1d, chg5d, chg20d, chg60d, vol_ratio, cross20_up = res
 
         above60 = close >= ma60
         above20 = close >= ma20
@@ -304,6 +313,7 @@ def build_section_lines(title: str, tickers: list[str]):
             "vol_ratio": vol_ratio, 
             "above60": above60,
             "above20": above20,
+            "cross20_up": cross20_up,
         })
 
     # (20D → 5D → 1D)
@@ -314,15 +324,9 @@ def build_section_lines(title: str, tickers: list[str]):
 
     for r in results:
         lines.append(format_block(
-            r["ticker"],
-            r["close"],
-            r["ma20"],
-            r["ma60"],
-            r["chg1d"],
-            r["chg5d"],
-            r["chg20d"],
-            r["chg60d"],
-            r["vol_ratio"],
+            r["ticker"], r["close"], r["ma20"], r["ma60"],
+            r["chg1d"], r["chg5d"], r["chg20d"], r["chg60d"],
+            r["vol_ratio"], r["cross20_up"]
         ))
 
     if missing:
