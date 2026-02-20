@@ -112,29 +112,27 @@ def fetch_stats(ticker, period="1y"):
     ma20 = close.rolling(20).mean()
     ma60 = close.rolling(60).mean()
 
+    # MA60 유효한 마지막 거래일 기준
     last_idx = ma60.last_valid_index()
     if last_idx is None:
         return None
 
     pos = df.index.get_loc(last_idx)
-    if pos < 60:
+    if pos < 5:
         return None
 
     close0 = float(close.iloc[pos])
     close1 = float(close.iloc[pos - 1])
     close5 = float(close.iloc[pos - 5])
-    close20 = float(close.iloc[pos - 20])
-    close60 = float(close.iloc[pos - 60])
 
     ma20v = float(ma20.iloc[pos])
     ma60v = float(ma60.iloc[pos])
 
     chg1d = (close0 / close1 - 1.0) * 100.0
     chg5d = (close0 / close5 - 1.0) * 100.0
-    chg20d = (close0 / close20 - 1.0) * 100.0
-    chg60d = (close0 / close60 - 1.0) * 100.0
 
-    return close0, ma20v, ma60v, chg1d, chg5d, chg20d, chg60d
+    return close0, ma20v, ma60v, chg1d, chg5d
+
 
 def fmt_pct(x):
     if x > 0:
@@ -149,7 +147,7 @@ def fmt_pct(x):
     return f"{x:+.2f}%"
 
 
-def format_block(ticker, close, ma20, ma60, chg1d, chg5d, chg20d, chg60d):
+def format_block(ticker, close, ma20, ma60, chg1d, chg5d):
     name = TICKER_NAME_MAP.get(ticker, ticker)
     display_name = f"{name} ({ticker})"
 
@@ -158,14 +156,10 @@ def format_block(ticker, close, ma20, ma60, chg1d, chg5d, chg20d, chg60d):
 
     return (
         f"{display_name}\n"
-        f"종가: {format_price(ticker, close)}\n\n"
-        f"📊 추세\n"
-        f"20D: {fmt_pct(chg20d)}\n"
-        f"60D: {fmt_pct(chg60d)}\n\n"
-        f"⚡ 단기\n"
-        f"1D: {fmt_pct(chg1d)} | 5D: {fmt_pct(chg5d)}\n"
-        f"20MA: {format_price(ticker, ma20)} {a20}\n"
-        f"60MA: {format_price(ticker, ma60)} {a60}\n"
+        f"종가: {format_price(ticker, close)}\n"
+        f"전일: {fmt_pct(chg1d)} | 주간(5D): {fmt_pct(chg5d)}\n"
+        f"20일이평선: {format_price(ticker, ma20)} {a20}\n"
+        f"60일이평선: {format_price(ticker, ma60)} {a60}\n"
     )
 
     return (
@@ -242,7 +236,7 @@ def build_section_lines(title: str, tickers: list[str]):
             missing.append(t)
             continue
 
-        close, ma20, ma60, chg1d, chg5d, chg20d, chg60d = res
+        close, ma20, ma60, chg1d, chg5d = res
         above60 = close >= ma60
         above20 = close >= ma20
 
@@ -263,7 +257,7 @@ def build_section_lines(title: str, tickers: list[str]):
     # 출력
     for r in results:
         lines.append(format_block(
-            r["ticker"], r["close"], r["ma20"], r["ma60"], r["chg1d"], r["chg5d"], r["chg20d"], r["chg60d"],
+            r["ticker"], r["close"], r["ma20"], r["ma60"], r["chg1d"], r["chg5d"]
         ))
 
     if missing:
