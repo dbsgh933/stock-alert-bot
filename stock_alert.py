@@ -243,29 +243,39 @@ def build_section_lines(title: str, tickers: list[str]):
             continue
 
         close, ma20, ma60, chg1d, chg5d, chg20d, chg60d = res
+
         above60 = close >= ma60
         above20 = close >= ma20
 
-       results.append({
-    		"ticker": t,
-    		"close": close,
-    		"ma20": ma20,
-    		"ma60": ma60,
-    		"chg1d": chg1d,
-    		"chg5d": chg5d,
-    		"chg20d": chg20d,
-    		"chg60d": chg60d,
-    		"above60": above60,
-    		"above20": above20,
-	})
+        results.append({
+            "ticker": t,
+            "close": close,
+            "ma20": ma20,
+            "ma60": ma60,
+            "chg1d": chg1d,
+            "chg5d": chg5d,
+            "chg20d": chg20d,
+            "chg60d": chg60d,
+            "above60": above60,
+            "above20": above20,
+        })
 
-    # ✅ (60일선 위) → (20일선 위) → (5일 변동률) 정렬
-    results.sort(key=lambda x: (x["above60"], x["above20"], x["chg5d"]), reverse=True)
+    # 60D → 20D → 5D 기준 정렬
+    results.sort(
+        key=lambda x: (x["chg60d"], x["chg20d"], x["chg5d"]),
+        reverse=True
+    )
 
-    # 출력
     for r in results:
         lines.append(format_block(
-            r["ticker"], r["close"], r["ma20"], r["ma60"], r["chg1d"], r["chg5d"], r["chg20d"], r["chg60d"],
+            r["ticker"],
+            r["close"],
+            r["ma20"],
+            r["ma60"],
+            r["chg1d"],
+            r["chg5d"],
+            r["chg20d"],
+            r["chg60d"],
         ))
 
     if missing:
@@ -273,7 +283,7 @@ def build_section_lines(title: str, tickers: list[str]):
         for t in missing:
             lines.append(f"- {t}")
 
-    lines.append("")  # 섹션 끝 빈 줄
+    lines.append("")
     return lines
 
 
