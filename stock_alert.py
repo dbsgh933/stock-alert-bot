@@ -57,8 +57,8 @@ TICKER_NAME_MAP = {
     "CMI": "커민스",
     "LRCX": "램리서치",
     "TSM": "TSMC",
-    "RKLB": "로켓랩",
-    "BITX": "비트코인 전략 2배 ETF",
+    "JOBY": "조비에비에이션",
+    "SMR": "뉴스케일파워",
 
     # 🇰🇷 한국
     "004020.KS": "현대제철",
@@ -76,10 +76,10 @@ TICKER_NAME_MAP = {
     "316140.KS": "우리금융지주",
     "086790.KS": "하나금융지주",
     "396500.KS": "TIGER 차이나반도체FACTSET",
+    "010120.KS": "LS ELECTRIC",
 
     # 관심종목 한국
     "012450.KS": "한화에어로스페이스",
-    "010120.KS": "LS ELECTRIC",
     "278470.KS": "에이피알",
     "298040.KS": "효성중공업",
     "267260.KS": "HD현대일렉트릭",
@@ -97,11 +97,32 @@ TICKER_NAME_MAP = {
     "ETN": "이튼",
     "SPOT": "스포티파이",
     "AAPL": "애플",
+    "RKLB": "로켓랩",
+    "BITX": "비트코인 전략 2배 ETF",
 }
 
 
 # ✅ 종목 리스트
-TICKERS_US = ["NVDA", "CRWV", "CAT", "GOOG", "LLY", "WDC", "TER", "ICOP", "SNDK", "MU", "IAU", "SLV", "COHR", "CMI", "LRCX", "TSM", "RKLB", "BITX", "FXI"]
+TICKERS_US = [
+    "NVDA",   # 엔비디아
+    "CRWV",   # 코어위브 (CoreWeave)
+    "CAT",    # 캐터필러
+    "GOOG",   # 알파벳 Class C (구글)
+    "LLY",    # 일라이 릴리
+    "WDC",    # 웨스턴디지털
+    "TER",    # 테라다인
+    "ICOP",   # 아이코어커넥트 (확인 필요)
+    "SNDK",   # 샌디스크
+    "MU",     # 마이크론 테크놀로지
+    "IAU",    # 아이셰어즈 골드 ETF
+    "SLV",    # 아이셰어즈 실버 ETF
+    "COHR",   # 코히런트 (구 II-VI)
+    "CMI",    # 커민스
+    "LRCX",   # 램리서치
+    "TSM",    # TSMC (대만반도체)
+    "JOBY",   # 조비 에비에이션 (eVTOL)
+    "SMR",    # 뉴스케일파워 (소형모듈원전)
+]
 TICKERS_KR = [
     "004020.KS",  # 현대제철
     "000120.KS",  # CJ대한통운
@@ -118,10 +139,10 @@ TICKERS_KR = [
     "316140.KS",  # 우리금융지주
     "086790.KS",  # 하나금융지주
     "396500.KS",  # TIGER 차이나반도체FACTSET
+    "010120.KS",  # LS ELECTRIC
 ]
 WATCHLIST_KR = [
     "012450.KS",  # 한화에어로스페이스
-    "010120.KS",  # LS ELECTRIC
     "278470.KS",  # 에이피알
     "298040.KS",  # 효성중공업
     "267260.KS",  # HD현대일렉트릭
@@ -139,6 +160,9 @@ WATCHLIST_US = [
     "ETN",   # 이튼
     "SPOT",  # 스포티파이
     "AAPL",  # 애플
+    "RKLB",  # 로켓랩
+    "BITX",  # 비트코인 2배 레버리지 ETF
+    "FXI",   # 아이셰어즈 차이나 대형주 ETF
 ]
 
 def fetch_stats(ticker, period="1y"):
