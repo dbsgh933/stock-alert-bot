@@ -183,6 +183,8 @@ def fetch_stats(ticker, period="1y"):
     close = df["Close"].astype(float)
     volume = df["Volume"].astype(float)
 
+    ma5  = close.rolling(5).mean()
+    ma10 = close.rolling(10).mean()
     ma20 = close.rolling(20).mean()
     ma60 = close.rolling(60).mean()
     vol_ma20 = volume.rolling(20).mean()
@@ -201,14 +203,14 @@ def fetch_stats(ticker, period="1y"):
     close20 = float(close.iloc[pos - 20])
     close60 = float(close.iloc[pos - 60])
 
+    ma5v  = float(ma5.iloc[pos])
+    ma10v = float(ma10.iloc[pos])
     ma20v = float(ma20.iloc[pos])
     ma20_prev = float(ma20.iloc[pos - 1])
-    
     ma60v = float(ma60.iloc[pos])
 
-    close0 = float(close.iloc[pos])
     close_prev = float(close.iloc[pos - 1])
-    
+
     # ✅ 20MA 아래→위 상향돌파
     cross20_up = (close_prev < ma20_prev) and (close0 >= ma20v)
 
@@ -223,7 +225,7 @@ def fetch_stats(ticker, period="1y"):
     vol_avg20 = float(vol_ma20.iloc[pos])
     vol_ratio = (vol_today / vol_avg20) if vol_avg20 and vol_avg20 > 0 else 0.0
 
-    return close0, ma20v, ma60v, chg1d, chg5d, chg20d, chg60d, vol_ratio, cross20_up
+    return close0, ma5v, ma10v, ma20v, ma60v, chg1d, chg5d, chg20d, chg60d, vol_ratio, cross20_up
 
 def fmt_pct_dot(x: float) -> str:
     # 변화량: 🟢+1.23% / 🔴-0.45%
@@ -248,7 +250,7 @@ def vol_badge(vol_ratio: float) -> str:
         return "💧"
     return ""
 
-def format_block(ticker, close, ma20, ma60, chg1d, chg5d, chg20d, chg60d, vol_ratio, cross20_up):
+def format_block(ticker, close, ma5, ma10, ma20, ma60, chg1d, chg5d, chg20d, chg60d, vol_ratio, cross20_up):
     name = TICKER_NAME_MAP.get(ticker, ticker)
     star = "⭐ " if cross20_up else ""
     display_name = f"{star}{name} ({ticker})"
@@ -258,6 +260,8 @@ def format_block(ticker, close, ma20, ma60, chg1d, chg5d, chg20d, chg60d, vol_ra
         f"종가: {format_price(ticker, close)}\n"
         f"전일: {fmt_pct_dot(chg1d)} | 주간(5D): {fmt_pct_dot(chg5d)}\n"
         f"20D: {fmt_pct_dot(chg20d)} | 60D: {fmt_pct_dot(chg60d)}\n"
+        f"5일이평선:  {format_price(ticker, ma5)} {ma_flag(close, ma5)}\n"
+        f"10일이평선: {format_price(ticker, ma10)} {ma_flag(close, ma10)}\n"
         f"20일이평선: {format_price(ticker, ma20)} {ma_flag(close, ma20)}\n"
         f"60일이평선: {format_price(ticker, ma60)} {ma_flag(close, ma60)}\n"
         f"거래량(20D평균대비): {vol_ratio:.2f}x {vol_badge(vol_ratio)}\n"
@@ -328,7 +332,7 @@ def build_section_lines(title: str, tickers: list[str]):
             missing.append(t)
             continue
 
-        close, ma20, ma60, chg1d, chg5d, chg20d, chg60d, vol_ratio, cross20_up = res
+        close, ma5, ma10, ma20, ma60, chg1d, chg5d, chg20d, chg60d, vol_ratio, cross20_up = res
 
         # ✅ 이벤트 감지 (⭐ / 🚀)
         name = TICKER_NAME_MAP.get(t, t)
@@ -344,15 +348,17 @@ def build_section_lines(title: str, tickers: list[str]):
         results.append({
             "ticker": t,
             "close": close,
+            "ma5": ma5,
+            "ma10": ma10,
             "ma20": ma20,
             "ma60": ma60,
             "chg1d": chg1d,
             "chg5d": chg5d,
             "chg20d": chg20d,
             "chg60d": chg60d,
-            "vol_ratio": vol_ratio, 
-            "above60": above60,
-            "above20": above20,
+            "vol_ratio": vol_ratio,
+            "above60": close >= ma60,
+            "above20": close >= ma20,
             "cross20_up": cross20_up,
         })
 
@@ -364,7 +370,8 @@ def build_section_lines(title: str, tickers: list[str]):
 
     for r in results:
         lines.append(format_block(
-            r["ticker"], r["close"], r["ma20"], r["ma60"],
+            r["ticker"], r["close"],
+            r["ma5"], r["ma10"], r["ma20"], r["ma60"],
             r["chg1d"], r["chg5d"], r["chg20d"], r["chg60d"],
             r["vol_ratio"], r["cross20_up"]
         ))
