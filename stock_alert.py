@@ -79,7 +79,8 @@ TICKER_NAME_MAP = {
     "032830.KS": "삼성생명",
     "316140.KS": "우리금융지주",
     "086790.KS": "하나금융지주",
-    "396500.KS": "TIGER 차이나반도체FACTSET",
+    "396500.KS": "TIGER 반도체TOP10",
+    "396520.KS": "TIGER 차이나반도체FACTSET",
     "272210.KS": "한화시스템",
     "079550.KS": "LIG넥스원",
     "010120.KS": "LS ELECTRIC",
@@ -158,7 +159,8 @@ TICKERS_KR = [
     "032830.KS",  # 삼성생명
     "316140.KS",  # 우리금융지주
     "086790.KS",  # 하나금융지주
-    "396500.KS",  # TIGER 차이나반도체FACTSET
+    "396500.KS",  # TIGER 반도체TOP10
+    "396520.KS",  # TIGER 차이나반도체FACTSET
     "278470.KS",  # 에이피알
 ]
 WATCHLIST_KR = [
