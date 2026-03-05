@@ -5,11 +5,37 @@ import json
 import os
 from datetime import datetime
 import pytz
+from pathlib import Path
 
 REST_API_KEY = os.environ["KAKAO_REST_API_KEY"]
 REFRESH_TOKEN = os.environ["KAKAO_REFRESH_TOKEN"]
 print("REST len:", len(os.getenv("KAKAO_REST_API_KEY","")))
 print("REFRESH len:", len(os.getenv("KAKAO_REFRESH_TOKEN","")))
+
+BASE_DIR = Path(__file__).resolve().parent
+
+def load_tickers():
+
+    with open(BASE_DIR / "tickers.json", "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    portfolio_kr = list(data["portfolio"]["kr"].keys())
+    portfolio_us = list(data["portfolio"]["us"].keys())
+
+    watchlist_kr = list(data["watchlist"]["kr"].keys())
+    watchlist_us = list(data["watchlist"]["us"].keys())
+
+    ticker_name_map = {}
+
+    ticker_name_map.update(data["portfolio"]["kr"])
+    ticker_name_map.update(data["portfolio"]["us"])
+    ticker_name_map.update(data["watchlist"]["kr"])
+    ticker_name_map.update(data["watchlist"]["us"])
+
+    return portfolio_kr, portfolio_us, watchlist_kr, watchlist_us, ticker_name_map
+
+
+TICKERS_KR, TICKERS_US, WATCHLIST_KR, WATCHLIST_US, TICKER_NAME_MAP = load_tickers()
 
 def get_access_token():
     url = "https://kauth.kakao.com/oauth/token"
