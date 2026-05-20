@@ -2,8 +2,8 @@ name: Stock Alert Bot
 
 on:
   schedule:
-    - cron: "0 7 * * 1-5"   # 🇰🇷 한국장 16:00 KST (월~금)
-    - cron: "0 21 * * 1-5"  # 🇺🇸 미국장 06:00 KST (화~토 아침)
+    - cron: "30 6 * * 1-5"   # 🇰🇷 한국장 16:00 KST (월~금)
+    - cron: "30 20 * * 1-5"  # 🇺🇸 미국장 06:00 KST (화~토 아침)
   workflow_dispatch:
 
 
