@@ -142,26 +142,6 @@ def format_price(ticker, price):
     else:
         return f"${price:,.2f}"
 
-def split_messages(lines, limit=900):
-    """
-    카카오 메시지 길이 여유 있게 쪼개기(너무 길면 여러 번 보내기)
-    """
-    msgs = []
-    buf = ""
-    for line in lines:
-        # 블록 사이 빈 줄 하나
-        add = line + "\n"
-        if len(buf) + len(add) > limit:
-            if buf.strip():
-                msgs.append(buf.strip())
-            buf = line + "\n"
-        else:
-            buf += add
-    if buf.strip():
-        msgs.append(buf.strip())
-    return msgs
-
-
 def send_to_email(text: str):
     subject = "📈 Stock Alert Bot"
 
@@ -259,7 +239,6 @@ def main():
     lines = [header, ""]
     all_events = []
 
-    # 섹션들 생성 + 이벤트 모으기
     section_lines, events = build_section_lines("📦 PORTFOLIO - 🇰🇷 KOREA", TICKERS_KR)
     lines += section_lines
     all_events += events
@@ -276,23 +255,18 @@ def main():
     lines += section_lines
     all_events += events
 
-    # ✅ 이벤트 요약을 "맨 위"에 삽입 (header 다음 줄)
     if all_events:
         summary = ["⭐ 오늘 20MA 상향돌파"] + all_events + [""]
     else:
         summary = ["⭐ 오늘 20MA 상향돌파: 없음", ""]
 
-    # header 바로 아래에 끼워넣기
     lines = [lines[0], ""] + summary + lines[2:]
 
-    # 너무 길면 자동 분할 전송
-    msgs = split_messages(lines, limit=900)
+    # ✅ 메일은 한 번에 발송
+    message = "\n".join(lines)
 
-    for i, m in enumerate(msgs, start=1):
-        if len(msgs) > 1:
-            m = f"{m}\n\n({i}/{len(msgs)})"
-        print("\n" + m + "\n" + "-" * 40)
-        send_to_email(m)
+    print("\n" + message + "\n" + "-" * 40)
+    send_to_email(message)
 
 
 if __name__ == "__main__":
