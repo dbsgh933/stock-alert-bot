@@ -1,18 +1,21 @@
+
 import yfinance as yf
 import pandas as pd
-import requests
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 import json
 import os
 from datetime import datetime
 import pytz
 from pathlib import Path
 
-REST_API_KEY = os.environ["KAKAO_REST_API_KEY"]
-REFRESH_TOKEN = os.environ["KAKAO_REFRESH_TOKEN"]
-print("REST len:", len(os.getenv("KAKAO_REST_API_KEY","")))
-print("REFRESH len:", len(os.getenv("KAKAO_REFRESH_TOKEN","")))
-
 BASE_DIR = Path(__file__).resolve().parent
+
+# 네이버 메일설정
+NAVER_EMAIL = os.environ["NAVER_EMAIL"]
+NAVER_APP_PASSWORD = os.environ["NAVER_APP_PASSWORD"]
+TO_EMAIL = os.environ.get("TO_EMAIL", NAVER_EMAIL)
 
 def load_tickers():
 
@@ -34,34 +37,7 @@ def load_tickers():
 
     return portfolio_kr, portfolio_us, watchlist_kr, watchlist_us, ticker_name_map
 
-
 TICKERS_KR, TICKERS_US, WATCHLIST_KR, WATCHLIST_US, TICKER_NAME_MAP = load_tickers()
-
-def get_access_token():
-    url = "https://kauth.kakao.com/oauth/token"
-    data = {
-        "grant_type": "refresh_token",
-        "client_id": REST_API_KEY,
-        "refresh_token": REFRESH_TOKEN,
-    }
-    r = requests.post(url, data=data, timeout=15)
-    result = r.json()
-    print("REFRESH RESULT:", result)
-    if r.status_code != 200:
-        raise RuntimeError(f"Failed to refresh token: {r.status_code} {result}")
-
-    access_token = result.get("access_token")
-    if not access_token:
-        raise RuntimeError(f"No access_token in response: {result}")
-    print("refresh status:", r.status_code)
-    print("refresh response keys:", list(result.keys()))
-
-    return access_token
-
-ACCESS_TOKEN = get_access_token()
-
-if not ACCESS_TOKEN:
-    raise RuntimeError("Failed to refresh Kakao access token. Check KAKAO_REST_API_KEY / KAKAO_REFRESH_TOKEN.")
 
 def fetch_stats(ticker, period="1y"):
     df = yf.download(ticker, period=period, auto_adjust=False, progress=False)
@@ -186,29 +162,27 @@ def split_messages(lines, limit=900):
     return msgs
 
 
-def send_to_kakao(text: str):
-    url = "https://kapi.kakao.com/v2/api/talk/memo/default/send"
-    headers = {"Authorization": f"Bearer {ACCESS_TOKEN}"}
+def send_to_email(text: str):
+    subject = "📈 Stock Alert Bot"
 
-    pretty = (
+    body = (
         "📈 Stock Alert Bot\n"
         "--------------------\n"
         f"{text}"
     )
 
-    data = {
-        "template_object": json.dumps({
-            "object_type": "text",
-            "text": pretty[:1000],  # 길이 안전장치
-            "link": {
-                "web_url": "https://www.tradingview.com",
-                "mobile_web_url": "https://www.tradingview.com"
-            }
-        }, ensure_ascii=False)
-    }
+    msg = MIMEMultipart()
+    msg["From"] = NAVER_EMAIL
+    msg["To"] = TO_EMAIL
+    msg["Subject"] = subject
 
-    r = requests.post(url, headers=headers, data=data, timeout=15)
-    print(r.status_code, r.text)
+    msg.attach(MIMEText(body, "plain", "utf-8"))
+
+    with smtplib.SMTP_SSL("smtp.naver.com", 465) as server:
+        server.login(NAVER_EMAIL, NAVER_APP_PASSWORD)
+        server.send_message(msg)
+
+    print(f"Email sent to {TO_EMAIL}")
 
 
 def build_section_lines(title: str, tickers: list[str]):
@@ -318,7 +292,7 @@ def main():
         if len(msgs) > 1:
             m = f"{m}\n\n({i}/{len(msgs)})"
         print("\n" + m + "\n" + "-" * 40)
-        send_to_kakao(m)
+        send_to_email(m)
 
 
 if __name__ == "__main__":
