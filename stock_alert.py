@@ -151,18 +151,24 @@ def send_to_email(text: str):
         f"{text}"
     )
 
+    recipients = [email.strip() for email in TO_EMAIL.split(",") if email.strip()]
+
     msg = MIMEMultipart()
     msg["From"] = NAVER_EMAIL
-    msg["To"] = TO_EMAIL
+    msg["To"] = ", ".join(recipients)
     msg["Subject"] = subject
 
     msg.attach(MIMEText(body, "plain", "utf-8"))
 
     with smtplib.SMTP_SSL("smtp.naver.com", 465) as server:
         server.login(NAVER_EMAIL, NAVER_APP_PASSWORD)
-        server.send_message(msg)
+        server.send_message(
+            msg,
+            from_addr=NAVER_EMAIL,
+            to_addrs=recipients
+        )
 
-    print(f"Email sent to {TO_EMAIL}")
+    print(f"Email sent to {', '.join(recipients)}")
 
 
 def build_section_lines(title: str, tickers: list[str]):
