@@ -142,6 +142,15 @@ def format_block(ticker, close, ma5, ma10, ma20, ma60, chg1d, chg5d, chg20d, chg
     display_name = f"{signal_text} {name} ({ticker})".strip()
 
     action_msg = ""
+    trend_msg = ""
+    if close >= ma5 >= ma10 >= ma20 >= ma60:
+        trend_msg = "추세: 5/10/20/60 정배열"
+    elif ma5 >= ma10 >= ma20 >= ma60:
+        trend_msg = "추세: 이평선 정배열, 현재가 5일선 아래"
+    elif ma20 >= ma60:
+        trend_msg = "추세: 중기 상승 구조"
+    else:
+        trend_msg = "추세: 정배열 아님"
 
     if cross60_down:
         action_msg = "판단: 전량 매도 고려"
@@ -153,6 +162,7 @@ def format_block(ticker, close, ma5, ma10, ma20, ma60, chg1d, chg5d, chg20d, chg
     return (
         f"{display_name}\n"
         f"{action_msg + chr(10) if action_msg else ''}"
+        f"{trend_msg}\n"
         f"종가: {format_price(ticker, close)}\n"
         f"전일: {fmt_pct_dot(chg1d)} | 주간(5D): {fmt_pct_dot(chg5d)}\n"
         f"20D: {fmt_pct_dot(chg20d)} | 60D: {fmt_pct_dot(chg60d)}\n"
@@ -245,6 +255,18 @@ def build_section_lines(title: str, tickers: list[str]):
         above60 = close >= ma60
         above20 = close >= ma20
 
+        is_aligned = close >= ma5 >= ma10 >= ma20 >= ma60
+        ma_score = 0
+        
+        if close >= ma5:
+            ma_score += 1
+        if ma5 >= ma10:
+            ma_score += 1
+        if ma10 >= ma20:
+            ma_score += 1
+        if ma20 >= ma60:
+            ma_score += 1
+        
         results.append({
             "ticker": t,
             "close": close,
@@ -259,14 +281,28 @@ def build_section_lines(title: str, tickers: list[str]):
             "vol_ratio": vol_ratio,
             "above60": close >= ma60,
             "above20": close >= ma20,
+            "is_aligned": is_aligned,
+            "ma_score": ma_score,
             "cross20_up": cross20_up,
             "cross20_down": cross20_down,
             "cross60_down": cross60_down,
         })
 
-    # (20D → 5D → 1D)
+    # 현재가 > 5일선 > 10일선 > 20일선 > 60일선
+    # 20일선 위
+    # 60일선 위
+    # 20D 수익률 양호
+    # 5D 수익률 양호
     results.sort(
-        key=lambda x: (x["chg20d"], x["chg5d"], x["chg1d"]),
+        key=lambda x: (
+            x["is_aligned"],   # 완전 정배열 우선
+            x["ma_score"],     # 정배열에 가까운 순
+            x["above20"],      # 20일선 위
+            x["above60"],      # 60일선 위
+            x["chg20d"],       # 20일 수익률
+            x["chg5d"],        # 5일 수익률
+            x["chg1d"],        # 1일 수익률
+        ),
         reverse=True
     )
 
