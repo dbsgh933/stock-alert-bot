@@ -126,7 +126,7 @@ def vol_badge(vol_ratio: float) -> str:
 
 def format_block(ticker, close, ma5, ma10, ma20, ma60, chg1d, chg5d, chg20d, chg60d, vol_ratio, cross20_up, cross20_down, cross60_down):
     # ✅ 이벤트 감지
-    name = TICKER_NAME_MAP.get(t, t)
+    name = TICKER_NAME_MAP.get(ticker, ticker)
 
     if cross60_down:
         event_list.append(f"🚨 60일선 하향이탈 - {name} ({t})")
