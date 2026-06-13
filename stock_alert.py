@@ -125,24 +125,34 @@ def vol_badge(vol_ratio: float) -> str:
     return ""
 
 def format_block(ticker, close, ma5, ma10, ma20, ma60, chg1d, chg5d, chg20d, chg60d, vol_ratio, cross20_up, cross20_down, cross60_down):
-    # ✅ 이벤트 감지
     name = TICKER_NAME_MAP.get(ticker, ticker)
 
+    signals = []
+
     if cross60_down:
-        event_list.append(f"🚨 60일선 하향이탈 - {name} ({t})")
-    elif cross20_down:
-        event_list.append(f"⚠️ 20일선 하향이탈 - {name} ({t})")
+        signals.append("🚨60이탈")
+    if cross20_down:
+        signals.append("⚠️20이탈")
+    if cross20_up and vol_ratio >= 2.0:
+        signals.append("🚀20돌파")
     elif cross20_up:
-        if vol_ratio >= 2.0:
-            event_list.append(f"🚀 20일선 상향돌파+거래량 - {name} ({t})")
-        else:
-            event_list.append(f"⭐ 20일선 상향돌파 - {name} ({t})")
-    
+        signals.append("⭐20돌파")
+
     signal_text = " ".join(signals)
     display_name = f"{signal_text} {name} ({ticker})".strip()
-    
+
+    action_msg = ""
+
+    if cross60_down:
+        action_msg = "판단: 전량 매도 고려"
+    elif cross20_down:
+        action_msg = "판단: 30% 매도 고려"
+    elif cross20_up:
+        action_msg = "판단: 매수 고려"
+
     return (
         f"{display_name}\n"
+        f"{action_msg + chr(10) if action_msg else ''}"
         f"종가: {format_price(ticker, close)}\n"
         f"전일: {fmt_pct_dot(chg1d)} | 주간(5D): {fmt_pct_dot(chg5d)}\n"
         f"20D: {fmt_pct_dot(chg20d)} | 60D: {fmt_pct_dot(chg60d)}\n"
