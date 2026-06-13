@@ -6,8 +6,6 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import json
 import os
-from datetime import datetime
-import pytz
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -72,14 +70,23 @@ def fetch_stats(ticker, period="1y"):
 
     ma5v  = float(ma5.iloc[pos])
     ma10v = float(ma10.iloc[pos])
+    
     ma20v = float(ma20.iloc[pos])
     ma20_prev = float(ma20.iloc[pos - 1])
+    
     ma60v = float(ma60.iloc[pos])
-
+    ma60_prev = float(ma60.iloc[pos - 1])
+    
     close_prev = float(close.iloc[pos - 1])
-
+    
     # ✅ 20MA 아래→위 상향돌파
     cross20_up = (close_prev < ma20_prev) and (close0 >= ma20v)
+    
+    # ✅ 20MA 위→아래 하향이탈
+    cross20_down = (close_prev >= ma20_prev) and (close0 < ma20v)
+    
+    # ✅ 60MA 위→아래 하향이탈
+    cross60_down = (close_prev >= ma60_prev) and (close0 < ma60v)
 
     # 수익률
     chg1d  = (close0 / close1  - 1.0) * 100.0
@@ -92,7 +99,7 @@ def fetch_stats(ticker, period="1y"):
     vol_avg20 = float(vol_ma20.iloc[pos])
     vol_ratio = (vol_today / vol_avg20) if vol_avg20 and vol_avg20 > 0 else 0.0
 
-    return close0, ma5v, ma10v, ma20v, ma60v, chg1d, chg5d, chg20d, chg60d, vol_ratio, cross20_up
+    return close0, ma5v, ma10v, ma20v, ma60v, chg1d, chg5d, chg20d, chg60d, vol_ratio, cross20_up, cross20_down, cross60_down
 
 def fmt_pct_dot(x: float) -> str:
     # 변화량: 🟢+1.23% / 🔴-0.45%
@@ -117,11 +124,23 @@ def vol_badge(vol_ratio: float) -> str:
         return "💧"
     return ""
 
-def format_block(ticker, close, ma5, ma10, ma20, ma60, chg1d, chg5d, chg20d, chg60d, vol_ratio, cross20_up):
+def format_block(ticker, close, ma5, ma10, ma20, ma60, chg1d, chg5d, chg20d, chg60d, vol_ratio, cross20_up, cross20_down, cross60_down):
     name = TICKER_NAME_MAP.get(ticker, ticker)
-    star = "⭐ " if cross20_up else ""
-    display_name = f"{star}{name} ({ticker})"
 
+    signals = []
+    
+    if cross60_down:
+        signals.append("🚨60이탈")
+    if cross20_down:
+        signals.append("⚠️20이탈")
+    if cross20_up and vol_ratio >= 2.0:
+        signals.append("🚀20돌파")
+    elif cross20_up:
+        signals.append("⭐20돌파")
+    
+    signal_text = " ".join(signals)
+    display_name = f"{signal_text} {name} ({ticker})".strip()
+    
     return (
         f"{display_name}\n"
         f"종가: {format_price(ticker, close)}\n"
@@ -183,15 +202,20 @@ def build_section_lines(title: str, tickers: list[str]):
             missing.append(t)
             continue
 
-        close, ma5, ma10, ma20, ma60, chg1d, chg5d, chg20d, chg60d, vol_ratio, cross20_up = res
+        close, ma5, ma10, ma20, ma60, chg1d, chg5d, chg20d, chg60d, vol_ratio, cross20_up, cross20_down, cross60_down = res
 
-        # ✅ 이벤트 감지 (⭐ / 🚀)
+        # ✅ 이벤트 감지
         name = TICKER_NAME_MAP.get(t, t)
-        if cross20_up:
+        
+        if cross60_down:
+            event_list.append(f"🚨 60일선 하향이탈 - {name} ({t})")
+        elif cross20_down:
+            event_list.append(f"⚠️ 20일선 하향이탈 - {name} ({t})")
+        elif cross20_up:
             if vol_ratio >= 2.0:
-                event_list.append(f"🚀 {name} ({t})")
+                event_list.append(f"🚀 20일선 상향돌파+거래량 - {name} ({t})")
             else:
-                event_list.append(f"⭐ {name} ({t})")
+                event_list.append(f"⭐ 20일선 상향돌파 - {name} ({t})")
 
         above60 = close >= ma60
         above20 = close >= ma20
@@ -211,6 +235,8 @@ def build_section_lines(title: str, tickers: list[str]):
             "above60": close >= ma60,
             "above20": close >= ma20,
             "cross20_up": cross20_up,
+            "cross20_down": cross20_down,
+            "cross60_down": cross60_down,
         })
 
     # (20D → 5D → 1D)
@@ -224,7 +250,7 @@ def build_section_lines(title: str, tickers: list[str]):
             r["ticker"], r["close"],
             r["ma5"], r["ma10"], r["ma20"], r["ma60"],
             r["chg1d"], r["chg5d"], r["chg20d"], r["chg60d"],
-            r["vol_ratio"], r["cross20_up"]
+            r["vol_ratio"], r["cross20_up"], r["cross20_down"], r["cross60_down"]
         ))
 
     if missing:
@@ -262,9 +288,9 @@ def main():
     all_events += events
 
     if all_events:
-        summary = ["⭐ 오늘 20MA 상향돌파"] + all_events + [""]
+        summary = ["📌 오늘 주요 이벤트"] + all_events + [""]
     else:
-        summary = ["⭐ 오늘 20MA 상향돌파: 없음", ""]
+        summary = ["📌 오늘 주요 이벤트: 없음", ""]
 
     lines = [lines[0], ""] + summary + lines[2:]
 
