@@ -125,18 +125,18 @@ def vol_badge(vol_ratio: float) -> str:
     return ""
 
 def format_block(ticker, close, ma5, ma10, ma20, ma60, chg1d, chg5d, chg20d, chg60d, vol_ratio, cross20_up, cross20_down, cross60_down):
-    name = TICKER_NAME_MAP.get(ticker, ticker)
+    # ✅ 이벤트 감지
+    name = TICKER_NAME_MAP.get(t, t)
 
-    signals = []
-    
     if cross60_down:
-        signals.append("🚨60이탈")
-    if cross20_down:
-        signals.append("⚠️20이탈")
-    if cross20_up and vol_ratio >= 2.0:
-        signals.append("🚀20돌파")
+        event_list.append(f"🚨 60일선 하향이탈 - {name} ({t})")
+    elif cross20_down:
+        event_list.append(f"⚠️ 20일선 하향이탈 - {name} ({t})")
     elif cross20_up:
-        signals.append("⭐20돌파")
+        if vol_ratio >= 2.0:
+            event_list.append(f"🚀 20일선 상향돌파+거래량 - {name} ({t})")
+        else:
+            event_list.append(f"⭐ 20일선 상향돌파 - {name} ({t})")
     
     signal_text = " ".join(signals)
     display_name = f"{signal_text} {name} ({ticker})".strip()
