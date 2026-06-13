@@ -330,7 +330,7 @@ def main():
 
     header = f"📈 20/60MA + 변동률(1D/5D/20D/60D) | {today}"
 
-   sort_guide = [
+    sort_guide = [
         "📊 전략/정렬 기준",
         "전략: GDP·산업 성장을 이끄는 주도주 중심 추세추종",
         "주식 비중: 주도주 존재 + 상승 추세 확인 시 확대, 주도주 부재/추세 훼손 시 축소",
@@ -353,10 +353,9 @@ def main():
         "정렬: 정배열 → 근접도 → 20일선 위 → 60일선 위 → 20D/5D/1D 수익률",
         "",
     ]
-    
-    lines = [header, ""] + sort_guide
 
-    # ✅ 이벤트를 종류별로 분리해서 저장
+    lines = [header, ""]
+
     all_events = {
         "cross20_up": [],
         "cross20_up_volume": [],
@@ -364,27 +363,28 @@ def main():
         "cross60_down": [],
     }
 
+    body_lines = []
+
     section_lines, events = build_section_lines("📦 PORTFOLIO - 🇰🇷 KOREA", TICKERS_KR)
-    lines += section_lines
+    body_lines += section_lines
     for key in all_events:
         all_events[key] += events[key]
 
     section_lines, events = build_section_lines("📦 PORTFOLIO - 🇺🇸 USA", TICKERS_US)
-    lines += section_lines
+    body_lines += section_lines
     for key in all_events:
         all_events[key] += events[key]
 
     section_lines, events = build_section_lines("👀 WATCHLIST - 🇰🇷 KOREA", WATCHLIST_KR)
-    lines += section_lines
+    body_lines += section_lines
     for key in all_events:
         all_events[key] += events[key]
 
     section_lines, events = build_section_lines("👀 WATCHLIST - 🇺🇸 USA", WATCHLIST_US)
-    lines += section_lines
+    body_lines += section_lines
     for key in all_events:
         all_events[key] += events[key]
 
-    # ✅ 요약 메시지 생성
     summary = ["📌 오늘 주요 이벤트", ""]
 
     has_event = any(len(v) > 0 for v in all_events.values())
@@ -413,9 +413,8 @@ def main():
             summary += all_events["cross60_down"]
             summary.append("")
 
-    lines = [lines[0], ""] + summary + lines[2:]
+    lines = lines + summary + sort_guide + body_lines
 
-    # ✅ 메일은 한 번에 발송
     message = "\n".join(lines)
 
     print("\n" + message + "\n" + "-" * 40)
