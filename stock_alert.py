@@ -204,7 +204,12 @@ def build_section_lines(title: str, tickers: list[str]):
     lines = [title]
     results = []
     missing = []
-    event_list = []
+    event_list = {
+        "cross20_up": [],
+        "cross20_up_volume": [],
+        "cross20_down": [],
+        "cross60_down": [],
+    }
 
     for t in tickers:
         res = fetch_stats(t)
@@ -214,18 +219,28 @@ def build_section_lines(title: str, tickers: list[str]):
 
         close, ma5, ma10, ma20, ma60, chg1d, chg5d, chg20d, chg60d, vol_ratio, cross20_up, cross20_down, cross60_down = res
 
-        # ✅ 이벤트 감지
+        # ✅ 이벤트 감지 - 상향/하향/20일/60일 분리
         name = TICKER_NAME_MAP.get(t, t)
         
-        if cross60_down:
-            event_list.append(f"🚨 60일선 하향이탈 - {name} ({t})")
-        elif cross20_down:
-            event_list.append(f"⚠️ 20일선 하향이탈 - {name} ({t})")
-        elif cross20_up:
+        if cross20_up:
             if vol_ratio >= 2.0:
-                event_list.append(f"🚀 20일선 상향돌파+거래량 - {name} ({t})")
+                event_list["cross20_up_volume"].append(
+                    f"- {name} ({t}) | 매수 적극 검토"
+                )
             else:
-                event_list.append(f"⭐ 20일선 상향돌파 - {name} ({t})")
+                event_list["cross20_up"].append(
+                    f"- {name} ({t}) | 매수 고려"
+                )
+        
+        if cross20_down:
+            event_list["cross20_down"].append(
+                f"- {name} ({t}) | 30% 매도 고려"
+            )
+        
+        if cross60_down:
+            event_list["cross60_down"].append(
+                f"- {name} ({t}) | 전량 매도 고려"
+            )
 
         above60 = close >= ma60
         above20 = close >= ma20
@@ -279,28 +294,63 @@ def main():
 
     header = f"📈 20/60MA + 변동률(1D/5D/20D/60D) | {today}"
     lines = [header, ""]
-    all_events = []
+
+    # ✅ 이벤트를 종류별로 분리해서 저장
+    all_events = {
+        "cross20_up": [],
+        "cross20_up_volume": [],
+        "cross20_down": [],
+        "cross60_down": [],
+    }
 
     section_lines, events = build_section_lines("📦 PORTFOLIO - 🇰🇷 KOREA", TICKERS_KR)
     lines += section_lines
-    all_events += events
+    for key in all_events:
+        all_events[key] += events[key]
 
     section_lines, events = build_section_lines("📦 PORTFOLIO - 🇺🇸 USA", TICKERS_US)
     lines += section_lines
-    all_events += events
+    for key in all_events:
+        all_events[key] += events[key]
 
     section_lines, events = build_section_lines("👀 WATCHLIST - 🇰🇷 KOREA", WATCHLIST_KR)
     lines += section_lines
-    all_events += events
+    for key in all_events:
+        all_events[key] += events[key]
 
     section_lines, events = build_section_lines("👀 WATCHLIST - 🇺🇸 USA", WATCHLIST_US)
     lines += section_lines
-    all_events += events
+    for key in all_events:
+        all_events[key] += events[key]
 
-    if all_events:
-        summary = ["📌 오늘 주요 이벤트"] + all_events + [""]
+    # ✅ 요약 메시지 생성
+    summary = ["📌 오늘 주요 이벤트", ""]
+
+    has_event = any(len(v) > 0 for v in all_events.values())
+
+    if not has_event:
+        summary.append("오늘 주요 이벤트 없음")
+        summary.append("")
     else:
-        summary = ["📌 오늘 주요 이벤트: 없음", ""]
+        if all_events["cross20_up_volume"]:
+            summary.append("🚀 20일선 상향돌파 + 거래량")
+            summary += all_events["cross20_up_volume"]
+            summary.append("")
+
+        if all_events["cross20_up"]:
+            summary.append("⭐ 20일선 상향돌파")
+            summary += all_events["cross20_up"]
+            summary.append("")
+
+        if all_events["cross20_down"]:
+            summary.append("⚠️ 20일선 하향이탈")
+            summary += all_events["cross20_down"]
+            summary.append("")
+
+        if all_events["cross60_down"]:
+            summary.append("🚨 60일선 하향이탈")
+            summary += all_events["cross60_down"]
+            summary.append("")
 
     lines = [lines[0], ""] + summary + lines[2:]
 
@@ -309,7 +359,6 @@ def main():
 
     print("\n" + message + "\n" + "-" * 40)
     send_to_email(message)
-
 
 if __name__ == "__main__":
     main()
