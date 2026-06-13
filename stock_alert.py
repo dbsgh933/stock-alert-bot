@@ -329,7 +329,19 @@ def main():
     today = now_kst.strftime("%m/%d %H:%M")
 
     header = f"📈 20/60MA + 변동률(1D/5D/20D/60D) | {today}"
-    lines = [header, ""]
+
+    sort_guide = [
+        "📊 정렬 기준",
+        "정배열: 현재가 ≥ 5일선 ≥ 10일선 ≥ 20일선 ≥ 60일선",
+        "1순위: 5/10/20/60 정배열",
+        "2순위: 정배열 근접도",
+        "3순위: 20일선 위",
+        "4순위: 60일선 위",
+        "5순위: 20D → 5D → 1D 수익률",
+        "",
+    ]
+    
+    lines = [header, ""] + sort_guide
 
     # ✅ 이벤트를 종류별로 분리해서 저장
     all_events = {
