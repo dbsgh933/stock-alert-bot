@@ -510,33 +510,47 @@ def format_block(r):
     ticker = r["ticker"]
     name = TICKER_NAME_MAP.get(ticker, ticker)
 
-    badges = []
+    # 등급별 아이콘
+    if r["grade"] == "A":
+        grade_icon = "🟢"
+    elif r["grade"] == "B+":
+        grade_icon = "🟢"
+    elif r["grade"] == "B":
+        grade_icon = "🟡"
+    elif r["grade"] == "C":
+        grade_icon = "🟠"
+    else:
+        grade_icon = "🔴"
 
     # 추세 상태
+    trend_tags = []
+
     if r["is_aligned"]:
-        badges.append("정배열")
+        trend_tags.append("정배열")
     elif r["above20"] and r["above60"]:
-        badges.append("20/60위")
+        trend_tags.append("20/60위")
     elif r["above20"]:
-        badges.append("20위")
+        trend_tags.append("20위")
     elif r["above60"]:
-        badges.append("60위")
+        trend_tags.append("60위")
     else:
-        badges.append("20/60아래")
+        trend_tags.append("20/60아래")
 
     # 이벤트
     if r["cross20_up"] and r["vol_ratio"] >= 2.0:
-        badges.append("🚀20돌파")
+        trend_tags.append("🚀20돌파")
     elif r["cross20_up"]:
-        badges.append("⭐20돌파")
+        trend_tags.append("⭐20돌파")
 
     if r["cross20_down"]:
-        badges.append("⚠️20이탈")
+        trend_tags.append("⚠️20이탈")
 
     if r["cross60_down"]:
-        badges.append("🚨60이탈")
+        trend_tags.append("🚨60이탈")
 
-    # 거래량 표시
+    trend_text = " / ".join(trend_tags)
+
+    # 거래량
     if r["vol_ratio"] >= 2.0:
         vol_text = f"VOL {r['vol_ratio']:.1f}x🔥"
     elif r["vol_ratio"] >= 1.5:
@@ -546,24 +560,17 @@ def format_block(r):
     else:
         vol_text = f"VOL {r['vol_ratio']:.1f}x"
 
-    badge_text = " | ".join(badges)
-
     return (
         f"{name} ({ticker})\n"
-        f"{r['grade']} {r['score']:.0f}점 | "
-        f"{r['decision']} | "
-        f"{badge_text} | "
-        f"RS20 {r['rs20']:+.1f}%p | "
-        f"RS60 {r['rs60']:+.1f}%p | "
-        f"{vol_text}\n"
-        f"종가 {format_price(ticker, r['close'])} | "
-        f"전일 {fmt_pct_dot(r['chg1d'])} | "
-        f"5D {fmt_pct_dot(r['chg5d'])} | "
-        f"20D {fmt_pct_dot(r['chg20d'])} | "
-        f"60D {fmt_pct_dot(r['chg60d'])}\n"
-        f"5일 {format_price(ticker, r['ma5'])} {ma_flag(r['close'], r['ma5'])} | "
-        f"10일 {format_price(ticker, r['ma10'])} {ma_flag(r['close'], r['ma10'])} | "
-        f"20일 {format_price(ticker, r['ma20'])} {ma_flag(r['close'], r['ma20'])} | "
+        f"{grade_icon} {r['grade']} {r['score']:.0f}점 | {r['decision']}\n"
+        f"추세: {trend_text} | {vol_text}\n"
+        f"RS: 20D {r['rs20']:+.1f}%p / 60D {r['rs60']:+.1f}%p\n"
+        f"종가: {format_price(ticker, r['close'])}\n"
+        f"수익: 1D {fmt_pct_dot(r['chg1d'])} / 5D {fmt_pct_dot(r['chg5d'])}\n"
+        f"수익: 20D {fmt_pct_dot(r['chg20d'])} / 60D {fmt_pct_dot(r['chg60d'])}\n"
+        f"MA: 5일 {format_price(ticker, r['ma5'])} {ma_flag(r['close'], r['ma5'])} / "
+        f"10일 {format_price(ticker, r['ma10'])} {ma_flag(r['close'], r['ma10'])}\n"
+        f"MA: 20일 {format_price(ticker, r['ma20'])} {ma_flag(r['close'], r['ma20'])} / "
         f"60일 {format_price(ticker, r['ma60'])} {ma_flag(r['close'], r['ma60'])}\n"
     )
 
