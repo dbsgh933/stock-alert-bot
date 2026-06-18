@@ -118,10 +118,6 @@ def fetch_stats(ticker, period="1y"):
     ma20_slope = (ma20v / ma20_prev - 1.0) * 100.0
     ma60_slope = (ma60v / ma60_prev - 1.0) * 100.0
 
-    # 이격도
-    dist_ma20 = (close0 / ma20v - 1.0) * 100.0
-    dist_ma60 = (close0 / ma60v - 1.0) * 100.0
-
     # 거래량
     vol_today = float(volume.iloc[pos])
     vol_avg20 = float(vol_ma20.iloc[pos])
@@ -140,8 +136,6 @@ def fetch_stats(ticker, period="1y"):
         "chg60d": chg60d,
         "ma20_slope": ma20_slope,
         "ma60_slope": ma60_slope,
-        "dist_ma20": dist_ma20,
-        "dist_ma60": dist_ma60,
         "vol_ratio": vol_ratio,
         "cross20_up": cross20_up,
         "cross20_down": cross20_down,
@@ -155,17 +149,28 @@ def fetch_stats(ticker, period="1y"):
 
 
 # =========================
-# 점수 계산
+# 시장 기준
 # =========================
 
 def get_market_key(ticker: str) -> str:
+    kr_semi = [
+        "005930.KS",  # 삼성전자
+        "000660.KS",  # SK하이닉스
+        "009150.KS",  # 삼성전기
+        "011070.KS",  # LG이노텍
+        "319660.KQ",  # 피에스케이
+    ]
+
+    if ticker in kr_semi:
+        return "semi"
+
     if ticker.endswith(".KS") or ticker.endswith(".KQ"):
         return "kr"
 
     semi_keywords = [
         "NVDA", "AMD", "MU", "TSM", "LRCX", "ASML", "AMAT",
         "WDC", "ARM", "MRVL", "DELL", "AVGO", "TER", "COHR",
-        "SOXX", "INTC"
+        "SOXX", "INTC", "SNDK"
     ]
 
     clean_ticker = ticker.replace(".US", "").upper()
@@ -176,82 +181,173 @@ def get_market_key(ticker: str) -> str:
     return "us"
 
 
+# =========================
+# 점수 계산
+# =========================
+
 def calc_stock_score(stats, market_stats):
+    """
+    =========================
+    종목 점수 산정 기준
+    =========================
+
+    기본 방향:
+    - 단순히 많이 오른 종목이 아니라
+      1) 정배열인지
+      2) 이평선이 상승 중인지
+      3) 시장보다 강한지
+      4) 거래량이 붙었는지
+      5) 20/60일선 이탈이 있는지
+      를 합산해서 점수화한다.
+
+    점수 구성:
+
+    1. 정배열 구조: 최대 30점
+       - 현재가 >= 5일선 >= 10일선 >= 20일선 >= 60일선이면 +30점
+       - 완전 정배열이 아니어도 부분 점수 부여
+         20일선 위: +8
+         60일선 위: +8
+         5일선 >= 10일선: +5
+         10일선 >= 20일선: +5
+         20일선 >= 60일선: +5
+
+    2. 이평선 기울기: 최대 24점
+       - 20일선 상승 중이면 +12
+       - 60일선 상승 중이면 +12
+
+    3. 상대강도: 최대 36점
+       - 20일 수익률이 기준시장보다 높으면 +12
+       - 20일 상대강도가 +5%p 초과면 추가 +6
+       - 60일 수익률이 기준시장보다 높으면 +12
+       - 60일 상대강도가 +10%p 초과면 추가 +6
+
+       예:
+       종목 20D +18%, 기준시장 20D +7%
+       => 상대강도 +11%p
+       => +12점 + 추가 6점
+
+    4. 거래량: 최대 10점
+       - 20일 평균 거래량 대비 2.0배 이상이면 +10
+       - 1.5배 이상이면 +6
+       - 0.7배 이하이면 -3
+
+    5. 이벤트 점수
+       - 20일선 상향돌파: +8
+       - 20일선 하향이탈: -20
+       - 60일선 하향이탈: -35
+
+    참고:
+    - 20일선 이격도는 사용하지 않는다.
+    - 많이 오른 종목을 과열로 감점하지 않는다.
+    - 대신 20일선/60일선 이탈 여부로 추세 훼손을 판단한다.
+    """
+
     score = 0
 
-    # 1. 정배열 구조
+    # =========================
+    # 1. 정배열 구조 점수
+    # =========================
+    # 완전 정배열:
+    # 현재가 >= 5일선 >= 10일선 >= 20일선 >= 60일선
+    # 추세추종에서 가장 기본이 되는 강한 상승 구조
     if stats["is_aligned"]:
-        score += 25
+        score += 30
+
     else:
+        # 완전 정배열은 아니지만,
+        # 현재가가 주요 이평선 위에 있거나
+        # 단기/중기 이평선 배열이 좋아지는 경우 부분 점수 부여
         if stats["above20"]:
             score += 8
+
         if stats["above60"]:
             score += 8
+
         if stats["ma5"] >= stats["ma10"]:
-            score += 4
+            score += 5
+
         if stats["ma10"] >= stats["ma20"]:
-            score += 4
+            score += 5
+
         if stats["ma20"] >= stats["ma60"]:
-            score += 4
+            score += 5
 
-    # 2. 이평선 기울기
+    # =========================
+    # 2. 이평선 기울기 점수
+    # =========================
+    # 정배열이어도 이평선이 꺾이면 추세가 약해질 수 있음.
+    # 그래서 20일선과 60일선 자체가 상승 중인지 확인.
     if stats["ma20_slope"] > 0:
-        score += 10
-    if stats["ma60_slope"] > 0:
-        score += 10
+        score += 12
 
-    # 3. 상대강도
+    if stats["ma60_slope"] > 0:
+        score += 12
+
+    # =========================
+    # 3. 상대강도 점수
+    # =========================
+    # 주도주는 시장보다 강해야 한다.
+    # 한국 일반주는 KOSPI,
+    # 미국 일반주는 NASDAQ,
+    # 반도체주는 SOXX 대비 상대강도를 계산.
     rs20 = stats["chg20d"] - market_stats.get("chg20d", 0)
     rs60 = stats["chg60d"] - market_stats.get("chg60d", 0)
 
+    # 20일 상대강도
     if rs20 > 0:
-        score += 10
-    if rs20 > 5:
-        score += 5
-    if rs60 > 0:
-        score += 10
-    if rs60 > 10:
-        score += 5
+        score += 12
 
-    # 4. 거래량
+    if rs20 > 5:
+        score += 6
+
+    # 60일 상대강도
+    if rs60 > 0:
+        score += 12
+
+    if rs60 > 10:
+        score += 6
+
+    # =========================
+    # 4. 거래량 점수
+    # =========================
+    # 상승에 거래량이 붙으면 수급이 강하다고 판단.
+    # 거래량이 너무 적으면 신뢰도가 낮다고 보고 소폭 감점.
     if stats["vol_ratio"] >= 2.0:
         score += 10
+
     elif stats["vol_ratio"] >= 1.5:
         score += 6
+
     elif stats["vol_ratio"] <= 0.7:
         score -= 3
 
-    # 5. 이격도 과열 감점
-    dist = stats["dist_ma20"]
-
-    if 0 <= dist <= 12:
-        score += 8
-    elif 12 < dist <= 20:
-        score += 2
-    elif dist > 20:
-        score -= 8
-    elif dist < 0:
-        score -= 8
-
-    # 6. 이벤트
+    # =========================
+    # 5. 이벤트 점수
+    # =========================
+    # 사용자의 기존 원칙 반영:
+    # 20일선 상향돌파 = 재매수/추가매수 후보
+    # 20일선 하향이탈 = 일부 매도 검토
+    # 60일선 하향이탈 = 강한 매도 검토
     if stats["cross20_up"]:
         score += 8
+
     if stats["cross20_down"]:
-        score -= 15
+        score -= 20
+
     if stats["cross60_down"]:
-        score -= 30
+        score -= 35
 
     return score, rs20, rs60
 
 
 def grade_from_score(score):
-    if score >= 75:
+    if score >= 80:
         return "A"
-    if score >= 60:
+    if score >= 65:
         return "B+"
-    if score >= 45:
+    if score >= 50:
         return "B"
-    if score >= 30:
+    if score >= 35:
         return "C"
     return "D"
 
@@ -263,35 +359,19 @@ def decision_from_stats(stats, score):
     if stats["cross20_down"]:
         return "30% 매도 검토"
 
-    if score >= 75:
-        if stats["dist_ma20"] > 20:
-            return "보유 유지 / 신규매수 주의"
+    if score >= 80:
         return "비중 확대 후보"
 
-    if score >= 60:
-        if stats["dist_ma20"] > 20:
-            return "보유 유지 / 추격매수 주의"
+    if score >= 65:
         return "보유 유지 / 분할매수 후보"
 
-    if score >= 45:
+    if score >= 50:
         return "관망 후보"
 
-    if score >= 30:
+    if score >= 35:
         return "비중 축소 후보"
 
     return "약세 / 매수 제외"
-
-
-def overheat_msg(dist_ma20):
-    if dist_ma20 > 25:
-        return f"20일선 대비 +{dist_ma20:.1f}% → 과열 강함"
-    if dist_ma20 > 20:
-        return f"20일선 대비 +{dist_ma20:.1f}% → 과열 주의"
-    if dist_ma20 > 12:
-        return f"20일선 대비 +{dist_ma20:.1f}% → 다소 높음"
-    if dist_ma20 >= 0:
-        return f"20일선 대비 +{dist_ma20:.1f}% → 적정"
-    return f"20일선 대비 {dist_ma20:.1f}% → 20일선 아래"
 
 
 # =========================
@@ -352,11 +432,11 @@ def market_status_text(markets):
     elif score >= 6:
         market_status = "양호"
         min_weight, max_weight = 60, 90
-        comment = "시장 추세는 양호. 다만 과열 종목은 추격보다 눌림 확인."
+        comment = "시장 추세는 양호. 정배열 강한 종목 위주로 비중 유지 또는 확대."
     elif score >= 4:
         market_status = "중립"
         min_weight, max_weight = 40, 70
-        comment = "시장 추세가 애매함. 정배열 강한 종목 위주로만 선별."
+        comment = "시장 추세가 애매함. 주도주만 선별하고 후행주는 관망."
     elif score >= 2:
         market_status = "방어"
         min_weight, max_weight = 20, 50
@@ -450,7 +530,6 @@ def format_block(r):
         f"등급: {r['grade']} / 점수: {r['score']:.0f}점\n"
         f"추세: {trend_msg(r)}\n"
         f"상대강도: {r['market_name']} 대비 20D {r['rs20']:+.2f}%p / 60D {r['rs60']:+.2f}%p\n"
-        f"과열도: {overheat_msg(r['dist_ma20'])}\n"
         f"이평선 기울기: 20일 {r['ma20_slope']:+.2f}% / 60일 {r['ma60_slope']:+.2f}%\n"
         f"거래량: {r['vol_ratio']:.2f}x {vol_badge(r['vol_ratio'])}\n"
         f"\n"
@@ -479,7 +558,6 @@ def build_section_lines(title: str, tickers: list[str], markets: dict):
         "cross20_down": [],
         "cross60_down": [],
         "strong_buy": [],
-        "overheated": [],
     }
 
     for t in tickers:
@@ -534,20 +612,15 @@ def build_section_lines(title: str, tickers: list[str], markets: dict):
                 f"- {name} ({t}) | 전량 매도 검토 | 점수 {score:.0f}"
             )
 
-        if score >= 75 and stats["dist_ma20"] <= 20:
+        if score >= 80:
             event_list["strong_buy"].append(
                 f"- {name} ({t}) | 비중 확대 후보 | 등급 {grade} / 점수 {score:.0f}"
-            )
-
-        if stats["dist_ma20"] > 20 and score >= 60:
-            event_list["overheated"].append(
-                f"- {name} ({t}) | 주도주지만 과열 주의 | 20일선 대비 +{stats['dist_ma20']:.1f}%"
             )
 
         results.append(stats)
 
     # 정렬 기준
-    # 점수 높은 순 → 정배열 → 상대강도 → 20일 기울기 → 거래량
+    # 점수 높은 순 → 정배열 → 상대강도 → 이평선 기울기 → 거래량
     results.sort(
         key=lambda x: (
             x["score"],
@@ -560,10 +633,9 @@ def build_section_lines(title: str, tickers: list[str], markets: dict):
         reverse=True
     )
 
-    # 상단 / 중간 / 하단 분리
-    upper = [r for r in results if r["score"] >= 60]
-    middle = [r for r in results if 40 <= r["score"] < 60]
-    lower = [r for r in results if r["score"] < 40]
+    upper = [r for r in results if r["score"] >= 65]
+    middle = [r for r in results if 45 <= r["score"] < 65]
+    lower = [r for r in results if r["score"] < 45]
 
     if upper:
         lines.append("")
@@ -642,7 +714,6 @@ def main():
 
     lines = [header, ""]
 
-    # 시장 데이터
     markets = fetch_market_stats()
     market_lines, market_status, min_weight, max_weight = market_status_text(markets)
     lines += market_lines
@@ -653,7 +724,6 @@ def main():
         "cross20_down": [],
         "cross60_down": [],
         "strong_buy": [],
-        "overheated": [],
     }
 
     body_lines = []
@@ -701,11 +771,6 @@ def main():
             summary += all_events["cross20_up"]
             summary.append("")
 
-        if all_events["overheated"]:
-            summary.append("🔥 주도주 과열 주의")
-            summary += all_events["overheated"]
-            summary.append("")
-
         if all_events["cross20_down"]:
             summary.append("⚠️ 20일선 하향이탈")
             summary += all_events["cross20_down"]
@@ -716,17 +781,42 @@ def main():
             summary += all_events["cross60_down"]
             summary.append("")
 
-    guide = [
+        guide = [
         "📊 전략/정렬 기준",
         "전략: GDP·산업 성장을 이끄는 주도주 중심 추세추종",
         "주식 비중: 주도주 존재 + 상승 추세 확인 시 확대, 주도주 부재/추세 훼손 시 축소",
         "",
-        "📈 종목 해석 기준",
-        "A: 강한 주도주 후보 / 비중 확대 가능",
-        "B+: 보유 유지 또는 분할매수 후보",
-        "B: 관망 또는 소액 접근",
-        "C: 약한 흐름 / 우선순위 낮음",
-        "D: 매수 제외 또는 비중 축소 후보",
+        "📈 점수 산정 기준",
+        "정배열 구조: 최대 30점",
+        "- 완전 정배열 = 현재가 ≥ 5일선 ≥ 10일선 ≥ 20일선 ≥ 60일선",
+        "- 완전 정배열이 아니어도 20일선 위, 60일선 위, 이평선 배열에 따라 부분 점수",
+        "",
+        "이평선 기울기: 최대 24점",
+        "- 20일선 상승 중이면 +12",
+        "- 60일선 상승 중이면 +12",
+        "",
+        "상대강도: 최대 36점",
+        "- 20일 수익률이 기준시장보다 강하면 +12",
+        "- 20일 상대강도 +5%p 초과 시 추가 +6",
+        "- 60일 수익률이 기준시장보다 강하면 +12",
+        "- 60일 상대강도 +10%p 초과 시 추가 +6",
+        "",
+        "거래량: 최대 10점",
+        "- 20일 평균 거래량 대비 2.0배 이상 = +10",
+        "- 1.5배 이상 = +6",
+        "- 0.7배 이하 = -3",
+        "",
+        "이벤트 점수",
+        "- 20일선 상향돌파 = +8",
+        "- 20일선 하향이탈 = -20",
+        "- 60일선 하향이탈 = -35",
+        "",
+        "📈 등급 기준",
+        "A: 80점 이상 / 강한 주도주 후보",
+        "B+: 65점 이상 / 보유 유지 또는 분할매수 후보",
+        "B: 50점 이상 / 관망 또는 소액 접근",
+        "C: 35점 이상 / 약한 흐름 / 우선순위 낮음",
+        "D: 35점 미만 / 매수 제외 또는 비중 축소 후보",
         "",
         "상단 = 비중 확대 / 보유 우선 후보",
         "중간 = 관망 후보",
