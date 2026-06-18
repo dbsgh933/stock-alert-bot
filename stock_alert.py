@@ -512,6 +512,7 @@ def format_block(r):
 
     badges = []
 
+    # 추세 상태
     if r["is_aligned"]:
         badges.append("정배열")
     elif r["above20"] and r["above60"]:
@@ -523,6 +524,7 @@ def format_block(r):
     else:
         badges.append("20/60아래")
 
+    # 이벤트
     if r["cross20_up"] and r["vol_ratio"] >= 2.0:
         badges.append("🚀20돌파")
     elif r["cross20_up"]:
@@ -534,6 +536,7 @@ def format_block(r):
     if r["cross60_down"]:
         badges.append("🚨60이탈")
 
+    # 거래량 표시
     if r["vol_ratio"] >= 2.0:
         vol_text = f"VOL {r['vol_ratio']:.1f}x🔥"
     elif r["vol_ratio"] >= 1.5:
@@ -546,13 +549,22 @@ def format_block(r):
     badge_text = " | ".join(badges)
 
     return (
-        f"{name} ({ticker}) "
+        f"{name} ({ticker})\n"
         f"{r['grade']} {r['score']:.0f}점 | "
         f"{r['decision']} | "
         f"{badge_text} | "
         f"RS20 {r['rs20']:+.1f}%p | "
         f"RS60 {r['rs60']:+.1f}%p | "
         f"{vol_text}\n"
+        f"종가 {format_price(ticker, r['close'])} | "
+        f"전일 {fmt_pct_dot(r['chg1d'])} | "
+        f"5D {fmt_pct_dot(r['chg5d'])} | "
+        f"20D {fmt_pct_dot(r['chg20d'])} | "
+        f"60D {fmt_pct_dot(r['chg60d'])}\n"
+        f"5일 {format_price(ticker, r['ma5'])} {ma_flag(r['close'], r['ma5'])} | "
+        f"10일 {format_price(ticker, r['ma10'])} {ma_flag(r['close'], r['ma10'])} | "
+        f"20일 {format_price(ticker, r['ma20'])} {ma_flag(r['close'], r['ma20'])} | "
+        f"60일 {format_price(ticker, r['ma60'])} {ma_flag(r['close'], r['ma60'])}\n"
     )
 
 
@@ -795,10 +807,31 @@ def main():
             summary.append("")
 
         guide = [
-            "📊 기준",
-            "A=강한 주도주 / B+=보유·분할매수 / B=관망 / C=약함 / D=제외",
-            "20이탈=30% 매도 검토 / 60이탈=전량 매도 검토 / 20돌파=재매수 후보",
-            "점수: 정배열 + 이평선기울기 + 상대강도 + 거래량 + 돌파/이탈",
+            "📊 점수/등급 기준",
+            "점수 = 정배열 구조 + 이평선 기울기 + 상대강도 + 거래량 + 돌파/이탈 이벤트",
+            "",
+            "정배열 구조: 최대 30점",
+            "- 완전 정배열(현재가 ≥ 5일 ≥ 10일 ≥ 20일 ≥ 60일) = +30",
+            "- 부분 점수: 20일선 위 +8 / 60일선 위 +8 / 5≥10 +5 / 10≥20 +5 / 20≥60 +5",
+            "",
+            "이평선 기울기: 최대 24점",
+            "- 20일선 상승 +12 / 60일선 상승 +12",
+            "",
+            "상대강도: 최대 36점",
+            "- 20D가 기준시장보다 강함 +12 / RS20 +5%p 초과 추가 +6",
+            "- 60D가 기준시장보다 강함 +12 / RS60 +10%p 초과 추가 +6",
+            "",
+            "거래량: 최대 10점",
+            "- 20일 평균 거래량 대비 2.0배 이상 +10 / 1.5배 이상 +6 / 0.7배 이하 -3",
+            "",
+            "돌파/이탈 이벤트",
+            "- 20일선 상향돌파 +8",
+            "- 20일선 하향이탈 -20",
+            "- 60일선 하향이탈 -35",
+            "",
+            "등급: A 80점↑ / B+ 65점↑ / B 50점↑ / C 35점↑ / D 35점↓",
+            "판단: 20이탈=30% 매도 검토 / 60이탈=전량 매도 검토 / 20돌파=재매수 후보",
+            "정렬: 점수 → 정배열 → 상대강도 → 이평선 기울기 → 거래량",
             "",
         ]
 
