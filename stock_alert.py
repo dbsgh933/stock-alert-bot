@@ -510,36 +510,49 @@ def format_block(r):
     ticker = r["ticker"]
     name = TICKER_NAME_MAP.get(ticker, ticker)
 
-    signal = []
+    badges = []
+
+    if r["is_aligned"]:
+        badges.append("정배열")
+    elif r["above20"] and r["above60"]:
+        badges.append("20/60위")
+    elif r["above20"]:
+        badges.append("20위")
+    elif r["above60"]:
+        badges.append("60위")
+    else:
+        badges.append("20/60아래")
+
+    if r["cross20_up"] and r["vol_ratio"] >= 2.0:
+        badges.append("🚀20돌파")
+    elif r["cross20_up"]:
+        badges.append("⭐20돌파")
+
+    if r["cross20_down"]:
+        badges.append("⚠️20이탈")
 
     if r["cross60_down"]:
-        signal.append("🚨60이탈")
-    if r["cross20_down"]:
-        signal.append("⚠️20이탈")
-    if r["cross20_up"] and r["vol_ratio"] >= 2.0:
-        signal.append("🚀20돌파")
-    elif r["cross20_up"]:
-        signal.append("⭐20돌파")
+        badges.append("🚨60이탈")
 
-    signal_text = " ".join(signal)
-    display_name = f"{signal_text} {name} ({ticker})".strip()
+    if r["vol_ratio"] >= 2.0:
+        vol_text = f"VOL {r['vol_ratio']:.1f}x🔥"
+    elif r["vol_ratio"] >= 1.5:
+        vol_text = f"VOL {r['vol_ratio']:.1f}x⚡"
+    elif r["vol_ratio"] <= 0.7:
+        vol_text = f"VOL {r['vol_ratio']:.1f}x💧"
+    else:
+        vol_text = f"VOL {r['vol_ratio']:.1f}x"
+
+    badge_text = " | ".join(badges)
 
     return (
-        f"{display_name}\n"
-        f"판단: {r['decision']}\n"
-        f"등급: {r['grade']} / 점수: {r['score']:.0f}점\n"
-        f"추세: {trend_msg(r)}\n"
-        f"상대강도: {r['market_name']} 대비 20D {r['rs20']:+.2f}%p / 60D {r['rs60']:+.2f}%p\n"
-        f"이평선 기울기: 20일 {r['ma20_slope']:+.2f}% / 60일 {r['ma60_slope']:+.2f}%\n"
-        f"거래량: {r['vol_ratio']:.2f}x {vol_badge(r['vol_ratio'])}\n"
-        f"\n"
-        f"종가: {format_price(ticker, r['close'])}\n"
-        f"전일: {fmt_pct_dot(r['chg1d'])} | 주간(5D): {fmt_pct_dot(r['chg5d'])}\n"
-        f"20D: {fmt_pct_dot(r['chg20d'])} | 60D: {fmt_pct_dot(r['chg60d'])}\n"
-        f"5일이평선:  {format_price(ticker, r['ma5'])} {ma_flag(r['close'], r['ma5'])}\n"
-        f"10일이평선: {format_price(ticker, r['ma10'])} {ma_flag(r['close'], r['ma10'])}\n"
-        f"20일이평선: {format_price(ticker, r['ma20'])} {ma_flag(r['close'], r['ma20'])}\n"
-        f"60일이평선: {format_price(ticker, r['ma60'])} {ma_flag(r['close'], r['ma60'])}\n"
+        f"{name} ({ticker}) "
+        f"{r['grade']} {r['score']:.0f}점 | "
+        f"{r['decision']} | "
+        f"{badge_text} | "
+        f"RS20 {r['rs20']:+.1f}%p | "
+        f"RS60 {r['rs60']:+.1f}%p | "
+        f"{vol_text}\n"
     )
 
 
@@ -782,53 +795,12 @@ def main():
             summary.append("")
 
         guide = [
-        "📊 전략/정렬 기준",
-        "전략: GDP·산업 성장을 이끄는 주도주 중심 추세추종",
-        "주식 비중: 주도주 존재 + 상승 추세 확인 시 확대, 주도주 부재/추세 훼손 시 축소",
-        "",
-        "📈 점수 산정 기준",
-        "정배열 구조: 최대 30점",
-        "- 완전 정배열 = 현재가 ≥ 5일선 ≥ 10일선 ≥ 20일선 ≥ 60일선",
-        "- 완전 정배열이 아니어도 20일선 위, 60일선 위, 이평선 배열에 따라 부분 점수",
-        "",
-        "이평선 기울기: 최대 24점",
-        "- 20일선 상승 중이면 +12",
-        "- 60일선 상승 중이면 +12",
-        "",
-        "상대강도: 최대 36점",
-        "- 20일 수익률이 기준시장보다 강하면 +12",
-        "- 20일 상대강도 +5%p 초과 시 추가 +6",
-        "- 60일 수익률이 기준시장보다 강하면 +12",
-        "- 60일 상대강도 +10%p 초과 시 추가 +6",
-        "",
-        "거래량: 최대 10점",
-        "- 20일 평균 거래량 대비 2.0배 이상 = +10",
-        "- 1.5배 이상 = +6",
-        "- 0.7배 이하 = -3",
-        "",
-        "이벤트 점수",
-        "- 20일선 상향돌파 = +8",
-        "- 20일선 하향이탈 = -20",
-        "- 60일선 하향이탈 = -35",
-        "",
-        "📈 등급 기준",
-        "A: 80점 이상 / 강한 주도주 후보",
-        "B+: 65점 이상 / 보유 유지 또는 분할매수 후보",
-        "B: 50점 이상 / 관망 또는 소액 접근",
-        "C: 35점 이상 / 약한 흐름 / 우선순위 낮음",
-        "D: 35점 미만 / 매수 제외 또는 비중 축소 후보",
-        "",
-        "상단 = 비중 확대 / 보유 우선 후보",
-        "중간 = 관망 후보",
-        "하단 = 비중 축소 / 매수 제외 후보",
-        "",
-        "20일선 하향이탈 = 일부 매도 검토",
-        "60일선 하향이탈 = 강한 매도 검토",
-        "20일선 상향돌파 = 재매수/추가매수 후보",
-        "",
-        "정렬: 점수 → 정배열 → 상대강도 → 이평선 기울기 → 거래량",
-        "",
-    ]
+            "📊 기준",
+            "A=강한 주도주 / B+=보유·분할매수 / B=관망 / C=약함 / D=제외",
+            "20이탈=30% 매도 검토 / 60이탈=전량 매도 검토 / 20돌파=재매수 후보",
+            "점수: 정배열 + 이평선기울기 + 상대강도 + 거래량 + 돌파/이탈",
+            "",
+        ]
 
     lines = lines + summary + guide + body_lines
 
